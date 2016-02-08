@@ -45,7 +45,7 @@ public class FunctionsTest {
 		clinVariants.addRefSeqData(refGeneFile, faRefFile);
 		hgmdVariants.addRefSeqData(refGeneFile, faRefFile);
 		Variants variants = Variants.concat(clinVariants, hgmdVariants);
-		Variants variantsBeforeExon = Variants.filterVariants(variants, intronExon);
+		Variants variantsBeforeExon = Variants.filterVariantType(variants, intronExon);
 		sequences = new Sequences(variantsBeforeExon, true);
 //		System.out.println(sequences);
 		

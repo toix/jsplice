@@ -110,10 +110,10 @@ public class Model {
 			if (variantsP.size() < 1) {
 				throw new IllegalArgumentException("The parameter contains no variants.");
 			}
-			Variants variants = Variants.filterVariants(variantsP, isAcceptor());
-			variants = Variants.extractCrypticVariants(variants, modelStd, modelStdOtherSide, isAcceptor(), false);
+			Variants variants = Filter.filterVariantType(variantsP, isAcceptor());
+			variants = Filter.extractCrypticVariants(variants, modelStd, modelStdOtherSide, isAcceptor(), false);
 	//		variants = VariantFile.filterActivatingVariants(this.variants, modelStd, true);
-			variants = Variants.filterNonACGT(variants);
+			variants = Filter.filterNonACGT(variants);
 			sequences = new Sequences(variants, acceptorP);
 			weightMatrix = calculateMatrix();
 			this.filtered = true;

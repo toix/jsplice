@@ -14,6 +14,7 @@ import jsplice.data.Variant;
 import jsplice.exception.Log;
 import jsplice.io.Variants;
 import jsplice.tools.AlgorithmAdministrator;
+import jsplice.tools.Filter;
 import jsplice.tools.Functions;
 import jsplice.tools.Sequences;
 
@@ -132,9 +133,9 @@ public class StaticMethods {
 		private static HashMap<String, Double> findPattern(Variants variants, boolean acceptor) throws UnexpectedException {
 			int rangeLength = 5;
 			int rangeShift = 3;
-			variants = Variants.filterVariants(variants, acceptor);
-			variants = Variants.extractVariantsInRange(variants, -20, -5);
-			variants = Variants.deleteDuplicateJunctions(variants);
+			variants = Filter.filterVariantType(variants, acceptor);
+			variants = Filter.extractVariantsInRange(variants, -20, -5);
+			variants = Filter.deleteDuplicateJunctions(variants);
 			HashMap<String, Integer> quantityAbs = new HashMap<String, Integer>();
 			HashMap<String, Integer> quantityCondition = new HashMap<String, Integer>();
 			int numOfPattern[] = Functions.getInitializedIntArray(rangeLength/2 + 1);
@@ -217,9 +218,9 @@ public class StaticMethods {
 		 */
 		private static HashMap<String, Double> findPatternGood(Variants variants, boolean acceptor) throws UnexpectedException {
 			int lengthPatternMax = 5;
-			variants = Variants.filterVariants(variants, acceptor);
-			variants = Variants.extractVariantsInRange(variants, -20, -5);
-			variants = Variants.deleteDuplicateJunctions(variants);
+			variants = Filter.filterVariantType(variants, acceptor);
+			variants = Filter.extractVariantsInRange(variants, -20, -5);
+			variants = Filter.deleteDuplicateJunctions(variants);
 			HashMap<String, Integer> quantityAbs = new HashMap<String, Integer>();
 			HashMap<String, Integer> quantityCondition = new HashMap<String, Integer>();
 			int numOfPattern[] = Functions.getInitializedIntArray(lengthPatternMax + 1);

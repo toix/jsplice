@@ -74,7 +74,7 @@ public class Sequences {
 			throw new IllegalArgumentException("The parameter contains no variants.");
 		}
 		this.acceptor = acceptorP;
-		this.variants = Variants.filterVariants(variantsP, acceptor);
+		this.variants = Filter.filterVariantType(variantsP, acceptor);
 		verifySequencesEquality(variants.getSequences());
 		Sequence firstSequence = variants.get(0).getSequence();
 		this.sequenceLength = firstSequence.length();

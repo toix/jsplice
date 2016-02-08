@@ -153,7 +153,7 @@ public class AlgorithmAdministrator {
 		System.out.println("nat: " + natRef + ">" + natAlt + "\t kry: " + kryRef + ">" + kryAlt + " at " + (crypticPos));
 		Variants variantsTest = new Variants();
 		variantsTest.add(seqTest.getVariant());
-		Variants.extractCrypticVariants(variantsTest, modelStdAcc, modelStdDon, false);
+		Filter.extractCrypticVariants(variantsTest, modelStdAcc, modelStdDon, false);
 		
 		
 		// activating variants
@@ -214,9 +214,9 @@ public class AlgorithmAdministrator {
 	 */
 		private static HashMap<String,Cluster> findPattern(Variants variants, boolean acceptor) {
 			int lengthPatternMax = Config.lengthPatternMax;
-			variants = Variants.filterVariants(variants, acceptor);
-			variants = Variants.extractVariantsInRange(variants, -20, -4);
-			variants = Variants.deleteDuplicateJunctions(variants);
+			variants = Filter.filterVariantType(variants, acceptor);
+			variants = Filter.extractVariantsInRange(variants, -20, -4);
+			variants = Filter.deleteDuplicateJunctions(variants);
 			HashMap<String, Integer> quantityAbs = new HashMap<String, Integer>();
 			HashMap<String, Integer> quantityCondition = new HashMap<String, Integer>();
 			int numOfPattern[] = Functions.getInitializedIntArray(lengthPatternMax + 1);
