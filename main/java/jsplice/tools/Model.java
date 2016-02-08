@@ -96,7 +96,6 @@ public class Model {
 		}
 		this.sequences = new Sequences(variantsP, acceptorP);
 		weightMatrix = calculateMatrix();
-		System.out.println(matrixToString("matrix"));
 		this.filtered = false;
 	}
 
@@ -226,8 +225,6 @@ public class Model {
 			// informationContent = new double[sequenceLength];
 			// calculate probability
 			probability = Functions.getFrequencies(sequences.getSequences(), true);
-	//		System.out.println(sequences);
-			System.out.println(probabilityToString());
 			// calculate error and weight matrix
 			double[][] weightMatrix = new double[sequences.length()][numberOfBases];
 			for (int l = 0; l < sequences.length(); l++) {
@@ -389,9 +386,9 @@ public class Model {
 		 * @return A summand for each position
 		 */
 		public Result getIndividualInformation(Sequence sequenceP, int junction, boolean reference, boolean limitLength) {
-			Log.add("Calculate individual information for the " + (reference ? "reference" : "alternate") + " of "
-					+ (sequenceP.isAcceptor() ? "an acceptor" : "a donor") + " sequence with " + (isAcceptor() ? "accptor" : "donor")
-					+ " model and " + (limitLength ? "limited" : "unlimited") + " length at position " + junction + ".", 2);
+//			Log.add("Calculate individual information for the " + (reference ? "reference" : "alternate") + " of "
+//					+ (sequenceP.isAcceptor() ? "an acceptor" : "a donor") + " sequence with " + (isAcceptor() ? "accptor" : "donor")
+//					+ " model and " + (limitLength ? "limited" : "unlimited") + " length at position " + junction + ".", 2);
 			if (sequenceP.length() < sequences.length()) {
 				throw new IllegalArgumentException("The length of the pattern Sequence (" + sequenceP.length()
 						+ ") has to be equal or bigger than the length of this instance (" + sequences.length() + ").");
@@ -417,11 +414,11 @@ public class Model {
 			} else if (limitLength && !isAcceptor() && matrixEnd > Config.getLengthModelExon() + intronLengthMax) {
 				matrixEnd = matrixStart + Config.getLengthModelExon() + intronLengthMax;
 			}
-			System.out.println("junction: " + junction);
-			System.out.println("getJunctionPosition(): " + sequences.getJunctionPosition());
-			System.out.println("patternStart: " + patternStart);
-			System.out.println("matrixStart: " + matrixStart);
-			System.out.println("matrixEnd: " + matrixEnd);
+//			System.out.println("junction: " + junction);
+//			System.out.println("getJunctionPosition(): " + sequences.getJunctionPosition());
+//			System.out.println("patternStart: " + patternStart);
+//			System.out.println("matrixStart: " + matrixStart);
+//			System.out.println("matrixEnd: " + matrixEnd);
 			double[] individualInformation = Functions.getInitializedDoubleArray(sequences.length());
 			int changePos = sequenceP.getPositionChange();
 			for (int locM = matrixStart, locP = patternStart; locM < matrixEnd; locM++, locP++) {
@@ -439,7 +436,7 @@ public class Model {
 	//				System.out.println("exLen: " + sequenceP.lengthExtended() + "\t len: " + sequenceP.length());
 	//			}
 			}
-			Log.add("Information: " + Functions.sum(individualInformation), 2);
+//			Log.add("Information: " + Functions.sum(individualInformation), 2);
 			return new Result(individualInformation, junction, sequenceP);
 		}
 

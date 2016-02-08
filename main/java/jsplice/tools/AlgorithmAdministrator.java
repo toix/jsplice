@@ -42,10 +42,7 @@ public class AlgorithmAdministrator {
 		Model modelStdAcc = new Model(variantsPathogene, acceptor);
 		Model modelStdDon = new Model(variantsPathogene, !acceptor);
 		
-		System.out.println(modelStdAcc.matrixToString("acc matrix"));
-		System.out.println(modelStdDon.matrixToString("don matrix"));
-		
-//		Variants variantsPathogeneNonCry = Variants.extractCrypticVariants(variantsPathogene, modelStdAcc, modelStdDon, false);
+//		Variants variantsPathogeneNonCry = Filter.extractCrypticVariants(variantsPathogene, modelStdAcc, modelStdDon, false);
 		
 //		variantsPathogene = VariantFile.concat(VariantFile.filterActivatingVariants(variantsPathogene, modelStdAcc, true), VariantFile.filterActivatingVariants(variantsPathogene, modelStdDon, true));
 		
@@ -141,19 +138,19 @@ public class AlgorithmAdministrator {
 //		Functions.writeToFile(outRandomChangeStd, "results/randomChangeStd.tsv");
 		
 		// analyze certain sequence
-		 System.out.println("\n---- certain sequence ---");
-		Sequence seqTest = findSequencebyPosition(new Sequences(variantsPathogene, !acceptor), 112111437);
-		System.out.println(seqTest.getVariant());
-		System.out.println(seqTest.getStringExtended());
-		int crypticPos = 7;//seqTest.getPositionChange()+1;
-		double natRef = modelStdAcc.getIndividualInformation(seqTest, seqTest.getPositionJunction(), true, false).getTotalInformation();
-		double natAlt = modelStdAcc.getIndividualInformation(seqTest, seqTest.getPositionJunction(), false, false).getTotalInformation();
-		double kryRef = modelStdAcc.getIndividualInformation(seqTest, crypticPos, true, false).getTotalInformation();
-		double kryAlt = modelStdAcc.getIndividualInformation(seqTest, crypticPos, false, false).getTotalInformation();
-		System.out.println("nat: " + natRef + ">" + natAlt + "\t kry: " + kryRef + ">" + kryAlt + " at " + (crypticPos));
-		Variants variantsTest = new Variants();
-		variantsTest.add(seqTest.getVariant());
-		Filter.extractCrypticVariants(variantsTest, modelStdAcc, modelStdDon, false);
+//		Log.add("\n---- certain sequence ---", 3);
+//		Sequence seqTest = findSequencebyPosition(new Sequences(variantsPathogene, acceptor), 241810764);
+//		Log.add(seqTest.getVariant()+"", 3);
+//		Log.add(seqTest.getStringExtended(), 2);
+//		int crypticPos = 0;//seqTest.getPositionChange()+1;
+//		double natRef = modelStdAcc.getIndividualInformation(seqTest, seqTest.getPositionJunction(), true, false).getTotalInformation();
+//		double natAlt = modelStdAcc.getIndividualInformation(seqTest, seqTest.getPositionJunction(), false, false).getTotalInformation();
+//		double kryRef = modelStdAcc.getIndividualInformation(seqTest, crypticPos, true, false).getTotalInformation();
+//		double kryAlt = modelStdAcc.getIndividualInformation(seqTest, crypticPos, false, false).getTotalInformation();
+//		Log.add("nat: " + natRef + ">" + natAlt + "\t kry: " + kryRef + ">" + kryAlt + " at " + (crypticPos), 2);
+//		Variants variantsTest = new Variants();
+//		variantsTest.add(seqTest.getVariant());
+//		Filter.extractCrypticVariants(variantsTest, modelStdAcc, modelStdDon, false);
 		
 		
 		// activating variants
@@ -204,6 +201,7 @@ public class AlgorithmAdministrator {
 	/**
 	 * TODO donor site 
 	 * TODO limit cluster subset merging OR subtract quantity of the important cluster from the smaller one 
+	 * TODO limit cluster        merging OR subtract quantity of the important cluster from the longer cluster 
 	 * TODO correct information of the overlap with the probability? 
 	 * TODO check quantityCon and cryptic: Matrix in Sequences is from (-) 1-4
 	 * TODO sub-pattern of clusters containing the

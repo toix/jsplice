@@ -307,16 +307,17 @@ public class Filter {
 				}
 				// System.out.println("nat info ref: " + individualInformationRef[i][naturalModelJunction]);
 		
-				int junctionPosition = sequence.getPositionJunction() - minAcc;
 				boolean isCrypticAcceptorSite;
 				boolean isCrypticDonorSite;
 				// penalty
 				if (acceptorVariants) {
+					int junctionPosition = sequence.getPositionJunction() - minAcc;
 					Log.add("acceptor", 2);
 					isCrypticAcceptorSite = isCryptic(totalInformationRefAcc[v], totalInformationAltAcc[v], junctionPosition, false) != null;
 					Log.add("donor", 2);
 					isCrypticDonorSite = isCryptic(totalInformationRefDon[v], totalInformationAltDon[v], junctionPosition, true) != null;
 				} else {
+					int junctionPosition = sequence.getPositionJunction() - minDon;
 					Log.add("acceptor", 2);
 					isCrypticAcceptorSite = isCryptic(totalInformationRefAcc[v], totalInformationAltAcc[v], junctionPosition, true) != null;
 					Log.add("donor", 2);
@@ -342,19 +343,17 @@ public class Filter {
 		 *            Sum of individual Information of the alternative sequence at all locations
 		 * @param totalInformationRef
 		 *            Sum of individual Information of the reference sequence at all locations
-		 * @param naturalPos
+		 * @param naturalJunction
 		 *            position where the sequence is naturally spliced
 		 * @param penalty true -> model and sequence belong to different site types (acceptor, donor)
 		 * @return whether the sequence is probably cryptic
 		 */
-		public static Integer isCryptic(Result[] totalInformationRef, Result[] totalInformationAlt, int naturalPos, boolean penalty) {
-	//		int naturalPos = totalInformationRef[0].sequence.getPositionJunction();
-			Log.add("nat pos: " + naturalPos, 1);
-			int posCryptic = naturalPos;
+		public static Integer isCryptic(Result[] totalInformationRef, Result[] totalInformationAlt, int naturalJunction, boolean penalty) {
+			Integer posCryptic = 0;
 			double informationCrypticMax = -100;
 			// decrease of individual information at the natural site
-			double informationNaturalRef = totalInformationRef[naturalPos].getTotalInformation();
-			double informationNaturalAlt = totalInformationAlt[naturalPos].getTotalInformation();
+			double informationNaturalRef = totalInformationRef[naturalJunction].getTotalInformation();
+			double informationNaturalAlt = totalInformationAlt[naturalJunction].getTotalInformation();
 			if (penalty) {
 				informationNaturalAlt = 0;
 				informationNaturalRef = 0;
@@ -369,29 +368,28 @@ public class Filter {
 				// increase of individual information at the potential site
 				double informationCrypticAlt = totalInformationAlt[l].getTotalInformation();
 				if (penalty) {
-					informationCrypticAlt -= 20.0 / Math.abs(l - naturalPos);
+					informationCrypticAlt -= 20. / Math.abs(l - naturalJunction);
 				}
 				double informationCrypticRef = totalInformationRef[l].getTotalInformation();
 				double crypticIncrease = informationCrypticAlt - informationCrypticRef;
 				if (	informationCrypticAlt > informationNaturalAlt * 3./4
-						&& informationCrypticAlt > informationNaturalRef * 1./2
+						&& informationCrypticAlt > informationNaturalRef * 1./3
 						&& naturalDecrease + crypticIncrease >= 1) {
-					Log.add("Position " + (l - naturalPos) + " IS  cryptic " + (penalty ? "with penalty" : "without penalty") + ": natural "
+					Log.add("Position " + totalInformationRef[l].position + " IS  cryptic " + (penalty ? "with penalty" : "without penalty") + ": natural "
 							+ informationNaturalRef + " > " + informationNaturalAlt + "\t cryptic " + informationCrypticRef + " > "
 							+ informationCrypticAlt, 2);
 					if (informationCrypticMax < informationCrypticAlt) {
 						informationCrypticMax = informationCrypticAlt;
-						posCryptic =l-naturalPos;
+						posCryptic = totalInformationRef[l].position;
 					}
 				}
-	//			if (l != naturalPos && informationCrypticAlt > -1 && crypticIncrease > 0 && naturalDecrease >= 0) {
-				if (true) {
-					Log.add("Position " + (l - naturalPos) + " NOT cryptic " + (penalty ? "with penalty" : "without penalty") + ": natural "
+				else if (l != naturalJunction && informationCrypticAlt > -1 && crypticIncrease > -3 && naturalDecrease >= 0) {
+					Log.add("Position " + totalInformationRef[l].position + " NOT cryptic " + (penalty ? "with penalty" : "without penalty") + ": natural "
 							+ informationNaturalRef + " > " + informationNaturalAlt + "\t cryptic " + informationCrypticRef + " > "
 							+ informationCrypticAlt, 2);
 				}
 			}
-			return informationCrypticMax == -100 ? null : posCryptic;
+			return posCryptic;
 		}
 
 	//	/**
