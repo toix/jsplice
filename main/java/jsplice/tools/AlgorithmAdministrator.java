@@ -4,11 +4,7 @@ import java.rmi.UnexpectedException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 import old.Gene;
 import old.Genes;
@@ -48,7 +44,7 @@ public class AlgorithmAdministrator {
 //		variantsPathogene = VariantFile.concat(Filter.filterActivatingVariants(variantsPathogene, modelStdAcc, true), Filter.filterActivatingVariants(variantsPathogene, modelStdDon, true));
 		
 		// find ISEs
-		quantityRelative = findPattern(variantsPathogene, acceptor);
+		quantityRelative = Model.findPattern(variantsPathogene, acceptor);
 		
 		String folder = "results/patternSep/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
 		crossValidate(variantsPathogene, variantsBenign, acceptor, folder);
@@ -200,185 +196,6 @@ public class AlgorithmAdministrator {
 	}
 	
 	/**
-	 * TODO donor site 
-	 * TODO limit cluster subset merging OR subtract quantity of the important cluster from the smaller one 
-	 * TODO limit cluster        merging OR subtract quantity of the important cluster from the longer cluster 
-	 * TODO correct information of the overlap with the probability? 
-	 * TODO check quantityCon and cryptic: Matrix in Sequences is from (-) 1-4
-	 * TODO sub-pattern of clusters containing the
-	 * important sequence as non-sub-pattern?
-	 * 
-	 * @param variants
-	 * @param acceptor
-	 */
-		private static HashMap<String,Cluster> findPattern(Variants variants, boolean acceptor) {
-			int lengthPatternMax = Config.lengthPatternMax;
-			variants = Filter.filterVariantType(variants, acceptor);
-			variants = Filter.extractVariantsInRange(variants, -20, -4);
-			variants = Filter.deleteDuplicateJunctions(variants);
-			HashMap<String, Integer> quantityAbs = new HashMap<String, Integer>();
-			HashMap<String, Integer> quantityCondition = new HashMap<String, Integer>();
-			int numOfPattern[] = Functions.getInitializedIntArray(lengthPatternMax + 1);
-			for (int i = 0; i < variants.size(); i++) {
-				Sequence sequence = variants.get(i).getSequence();
-				int posChangeRel = sequence.getPositionChangeRelative();
-				int posChangeAbs = sequence.getPositionChange();
-				// count pattern on the variant position and in other sequences at the same position
-				if (posChangeRel >= -35 && posChangeRel <= -4) {
-					for (int length = 1; length <= lengthPatternMax; length++) {
-						for (int shift = 0; shift < length; shift++) {
-							int from = posChangeAbs + shift - length + 1;
-							int to = posChangeAbs + shift;
-							int junction = sequence.getPositionJunction();
-							if (Math.abs(from - junction) > 3	&& Math.abs(to - junction) > 3) {
-								String patternRef = sequence.substring(from, to + 1);
-								if (!quantityAbs.containsKey(patternRef)) {
-									quantityAbs.put(patternRef, 1);
-								} else {
-									quantityAbs.put(patternRef, quantityAbs.get(patternRef) + 1);
-								}
-								// condition
-								String patternAlt = sequence.substring(from, to + 1, false);
-								if (!quantityCondition.containsKey(patternAlt)) {
-									quantityCondition.put(patternAlt, 1);
-								} else {
-									quantityCondition.put(patternAlt, quantityCondition.get(patternAlt) + 1);
-								}
-								numOfPattern[length]++;
-							}
-						}
-					}
-				}
-			}
-			
-			// quantityAbs / quantityCondition
-			HashMap<String, Double> quantityRelative = AlgorithmAdministrator.relativeQuantity(quantityAbs, quantityCondition);
-			HashMap<String, Pattern> patternQuantity = new HashMap<String, Pattern>();
-			
-			// create cluster for the best pattern and add all sub-pattern
-			double limit = 1;
-//			System.out.println("abs:" + quantityAbs);
-//			System.out.println("con:" + quantityCondition);
-//			System.out.println("rel:" + quantityRelative);
-			double quantityHighest;
-			HashMap<String, Cluster> clusterHash = new HashMap<String, Cluster>();
-			ArrayList<Cluster> cluster = new ArrayList<Cluster>();
-			do {
-				String patternHighest = findHighestPattern(quantityRelative);
-				quantityHighest = quantityRelative.get(patternHighest);
-				// add similar pattern to cluster
-				if (quantityHighest > limit) {
-					Cluster clusterNew;
-					if (!quantityCondition.containsKey(patternHighest)) {
-						clusterNew = new Cluster(patternHighest, quantityAbs.get(patternHighest), 0);
-					} else {
-						clusterNew = new Cluster(patternHighest, quantityAbs.get(patternHighest), quantityCondition.get(patternHighest));
-					}
-					cluster.add(clusterNew);
-					quantityRelative.remove(patternHighest);
-					Iterator<Entry<String, Double>> patternIt = quantityRelative.entrySet().iterator();
-					while (patternIt.hasNext()) {
-						String pattern = patternIt.next().getKey();
-						if (patternHighest.contains(pattern)) {
-							if (!quantityCondition.containsKey(pattern)) {
-								clusterNew.addSub(pattern, quantityAbs.get(pattern), 0);
-							} else {
-								clusterNew.addSub(pattern, quantityAbs.get(pattern), quantityCondition.get(pattern));
-							}
-							double percentage = (double) quantityAbs.get(pattern) / quantityAbs.get(patternHighest);
-//							if (percentage > 0.5) {
-								patternIt.remove();
-//							} else {
-//								quantityAbs.put(pattern, quantityAbs.get(pattern) - quantityAbs.get(patternHighest));
-//							}
-						}
-					}
-				}
-			} while (quantityHighest > limit);
-			// add all cluster as subset of the more important cluster
-			for (int i = 0; i < cluster.size(); i++) {
-				String patternMain = cluster.get(i).getPattern();
-				for (int j = i+1; j < cluster.size();) {
-					//  if subset cluster contains the substring of the important cluster
-					if (i != j && cluster.get(j).getPattern().contains(patternMain)) {
-						cluster.get(i).add(cluster.get(j));
-						cluster.remove(j);
-					} else {
-						j++;
-					}
-				}
-			}
-			for (int c = 0; c < cluster.size(); c++) {
-				// add only the best sequence to each cluster
-				// TODO  check distance to junction?
-				cluster.get(c).sortPattern();
-				String pattern = cluster.get(c).getPattern();
-				for (int v = 0; v < variants.size(); v++) {
-					int posChange = variants.get(v).getSequence().getPositionChange();
-					int min = posChange - lengthPatternMax + 1;
-					int max = posChange + lengthPatternMax - 1;
-					String sequence = variants.get(v).getSequence().substring(min, max);
-					if (sequence.contains(pattern)) {
-						cluster.get(c).addQuantity(sequence);
-					}
-				}
-				// create hash to cluster by its pattern
-				for (int p = 0; p < cluster.get(c).size(); p++) {
-					String key = cluster.get(c).getPattern(p).pattern;
-					clusterHash.put(key, cluster.get(c));
-				}
-			}
-			Log.add(cluster+"", 2);
-			Log.writeToFile();
-			return clusterHash;
-		}
-
-	/**
-	 * @param quantityRelative
-	 * @return
-	 */
-	private static String findHighestPattern(HashMap<String, Double> quantityRelative) {
-		Iterator<Entry<String, Double>> patternIt = quantityRelative.entrySet().iterator();
-		double valueMax = -1000000000;
-		String patternMax = "";
-		// crate a cluster for relevant pattern and remove short ones
-		while (patternIt.hasNext()) {
-			Entry<String, Double> entry = patternIt.next();
-			double value = (double) entry.getValue();
-			if (valueMax < value) {
-				valueMax = value;
-				patternMax = entry.getKey();
-			}
-		}
-		return patternMax;
-	}
-
-	/**
-	 * TODO unequal results for same quantities
-		 * @param quantityAbs
-		 * @param quantityCondition
-		 * @return 
-		 */
-		public static HashMap<String, Double> relativeQuantity(HashMap<String, Integer> quantityAbs, HashMap<String,Integer> quantityCondition) {
-			HashMap<String, Double> patternConditional = new HashMap<String, Double>();
-			Iterator<Entry<String, Integer>> patternIt = quantityAbs.entrySet().iterator();
-			while (patternIt.hasNext()) {
-				Entry<String, Integer> entry = patternIt.next();
-				String pattern = entry.getKey();
-			    double quantity = entry.getValue();
-	//		    System.out.println(quantity +"* ("+(double)Math.pow(4, pattern.length())+" / "+numOfPattern[pattern.length()/2]+")");
-	//		    System.out.println("relQty "+ pattern +" : " + getRelativePercentage(quantity, pattern.length(), numOfPattern));
-			    double quantityCon = 0;
-			    if (quantityCondition.containsKey(pattern)) {
-					quantityCon = quantityCondition.get(pattern);
-				}
-			    double quantityConditional = new BigDecimal(quantity - 1).divide(new BigDecimal(quantityCon + 1), 50, RoundingMode.HALF_UP).doubleValue();
-		    	patternConditional.put(pattern, quantityConditional);
-			}
-			return patternConditional;
-		}
-
-	/**
 	 * @param pattern1
 	 * @param pattern2
 	 * @return
@@ -415,11 +232,10 @@ public class AlgorithmAdministrator {
 	 * 
 	 */
 	private void crossValidate(Variants variantsPathogene, Variants variantsBenign, boolean acceptor, String folder) throws UnexpectedException {
-		for (int i = 1; i < 31; i++) {
+		for (int i = 1; i < 301; i++) {
 			System.out.println("\n\n - - - - - - - - - - - - - - - - - - - - - \n");
-			System.out.println("cross validation: " + i);
 			// separate training and test variants
-			Log.add("Run Nr. " + i, 3);
+			Log.add("cross validation run nr. " + i, 3);
 			ArrayList<Variants> separatedVariants;
 			separatedVariants = separateData(variantsBenign);
 			variantsBenTrain = separatedVariants.get(0);
@@ -516,7 +332,7 @@ public class AlgorithmAdministrator {
 		double[] resultsReference = modelStdAcc.getIndividualInformation(testSequences, true, cluster);
 		double[] resultsAlternate = modelStdAcc.getIndividualInformation(testSequences, false, cluster);
 		String results = "";
-		String line = "pos\t r\t a\t ref\t  alt";
+		String line = "pos\t r\t a\t ref\t  alt\t start\t sequence";
 		results += line;
 		for (int i = 0; i < testSequences.size(); i++) {
 			Sequence sequence = testSequences.get(i);
@@ -524,7 +340,7 @@ public class AlgorithmAdministrator {
 			String ref = variant.getRef();
 			String alt = variant.getAlt();
 			int pos = sequence.getPositionChangeRelative();
-			line = "\n" + pos + "\t " + ref + "\t " + alt + "\t " + resultsReference[i] + "\t " + resultsAlternate[i];
+			line = "\n" + pos + "\t " + ref + "\t " + alt + "\t " + resultsReference[i] + "\t " + resultsAlternate[i] + "\t " + variant.getStart() + "\t " + sequence.getStringExtended();
 			results += line;
 		}
 		return results;

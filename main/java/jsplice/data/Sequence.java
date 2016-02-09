@@ -154,14 +154,19 @@ public class Sequence {
 		}
 	}
 	
-	// TODO reference defines model, alternate uses the same
+	/**
+	 * TODO many scores are 0 instead of -1
+	 * @param quantityRelative
+	 * @param reference
+	 * @return
+	 */
 	public double getMaxPatternQty(HashMap<String,Cluster> quantityRelative, boolean reference) {
-		int lengthPatternMax = Config.lengthPatternMax;
+		int lengthPatternMax = Config.lengthIntronPatternMax;
 		int posChangeRel = getPositionChangeRelative();
 		int posChangeAbs = getPositionChange();
-		double quantityMax = 0;
+		double quantityMax = -1;
 		// find max pattern for ref and alt
-		if (posChangeRel >= -35 && posChangeRel <= -4) {
+		if (posChangeRel >= -40 && posChangeRel <= -4) {
 			for (int length = 1; length <= lengthPatternMax; length++) {
 				for (int shift = 0; shift < length; shift++) {
 					int from = posChangeAbs + shift - length + 1;
@@ -189,38 +194,6 @@ public class Sequence {
 		return (quantityMax);
 	}
 	
-	public double getMaxPatternQtyOld(HashMap<String, Double> quantityRelative, boolean reference) {
-		int lengthPattern = Config.lengthPatternMax;
-		int posChangeRel = getPositionChangeRelative();
-		int posChangeAbs = getPositionChange();
-		double quantityMax = 0;
-		// find max pattern for ref and alt
-		if (posChangeRel >= -35 && posChangeRel <= -4) {
-			for (int shift = 0; shift < lengthPattern; shift++) {
-				int from = posChangeAbs + shift - lengthPattern + 1;
-				int to = posChangeAbs + shift;
-				int junction = getPositionJunction();
-				// System.out.println("Math.abs(" + from + " - " + junction + ") > 3	&& Math.abs(" + to + " - " + junction + ") > 3)");
-				if (Math.abs(from - junction) > 3 && Math.abs(to - junction) > 3) {
-					String pattern = substring(from, to + 1, reference);
-					double quantity = 0;
-					if (quantityRelative.containsKey(pattern)) {
-						// System.out.println("new max: " + pattern);
-						quantity = quantityRelative.get(pattern);
-					} else {
-						// System.out.println("No quantity found for pattern " + pattern);
-					}
-					if (quantityMax < quantity) {
-						quantityMax = quantity;
-					}
-				}
-			}
-		} else {
-			quantityMax = 0;
-		}
-		return (quantityMax - 1) * 5;
-	}
-
 	/**
 	 * @return length of the first part of the sequence (intron or exon)
 	 */

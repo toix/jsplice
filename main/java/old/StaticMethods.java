@@ -17,6 +17,7 @@ import jsplice.io.Variants;
 import jsplice.tools.AlgorithmAdministrator;
 import jsplice.tools.Filter;
 import jsplice.tools.Functions;
+import jsplice.tools.Model;
 
 /**
  * @author Tobias Gresser (gresserT@gmail.com)
@@ -172,7 +173,7 @@ public class StaticMethods {
 				}
 			}
 			
-			HashMap<String, Double> quantityRelative = AlgorithmAdministrator.relativeQuantity(quantityAbs, quantityCondition);
+			HashMap<String, Double> quantityRelative = Model.relativeQuantity(quantityAbs, quantityCondition);
 	////		System.out.println(relativeQuantity);
 	//		ArrayList<Cluster> cluster = new ArrayList<Cluster>();
 	//		Iterator<Entry<String, Double>> patternIt = quantityRelative.entrySet().iterator();
@@ -258,7 +259,7 @@ public class StaticMethods {
 					}
 				}
 			}
-			HashMap<String, Double> quantityRelative = AlgorithmAdministrator.relativeQuantity(quantityAbs, quantityCondition);
+			HashMap<String, Double> quantityRelative = Model.relativeQuantity(quantityAbs, quantityCondition);
 	////		System.out.println(relativeQuantity);
 	//		ArrayList<Cluster> cluster = new ArrayList<Cluster>();
 	//		Iterator<Entry<String, Double>> patternIt = quantityRelative.entrySet().iterator();

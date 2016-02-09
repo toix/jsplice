@@ -28,7 +28,7 @@ public class Pattern implements Comparable<Pattern>{
 	 */
 	@Override
 	public String toString() {
-		return pattern + " " + quantityAbs + " " + quantityUnique;
+		return pattern + " " + quantityUnique + " " + getQuantityRelative();
 	}
 	
 	public boolean equals(Pattern patternP) {

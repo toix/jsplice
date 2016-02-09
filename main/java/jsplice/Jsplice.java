@@ -67,14 +67,11 @@ public class Jsplice {
 //		}
         vcfReader.close();
     	
-        System.out.println(Log.size());
-		Log.writeToFile();
-		System.out.println(Log.size());
-		System.out.println(Log.toStringStatic());
-		Log.close();
 		} catch (Exception e) {
-			Log.close();
 			e.printStackTrace();
+		} finally {
+			Log.writeToFile();
+			Log.close();
 		}
 	}
 }

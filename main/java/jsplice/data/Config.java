@@ -19,7 +19,7 @@ public class Config {
 	/**
 	 * The maximum length of the pattern for clustering
 	 */
-	public static final int lengthPatternMax = 12;
+	public static final int lengthIntronPatternMax = 12;
 	/**
 	 * Length of the whole sequence used for the algorithm. <br/>
 	 * 2 * sequenceLength defines the length of the training data <br/>

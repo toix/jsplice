@@ -108,7 +108,7 @@ public class Cluster {
 	public double[][] calculateInformationMatrix(){
 		// count quantities by position
 		int lengthPattern = getPattern().length();
-		lengthOverlapMax = Config.lengthPatternMax - lengthPattern;
+		lengthOverlapMax = Config.lengthIntronPatternMax - lengthPattern;
 		lengthCluster = lengthOverlapMax + lengthPattern + lengthOverlapMax;
 		int numberOfBases = Functions.bases.length();
 		double[][] count = new double[lengthCluster][numberOfBases];
