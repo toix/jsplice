@@ -5,10 +5,10 @@ import java.util.HashMap;
 import java.util.regex.Pattern;
 
 import jsplice.data.Sequence;
+import jsplice.data.Sequences;
 import jsplice.data.Variant;
 import jsplice.exception.Log;
 import jsplice.tools.Functions;
-import jsplice.tools.Sequences;
 
 /**
  * Reads a variant file and stores the variants

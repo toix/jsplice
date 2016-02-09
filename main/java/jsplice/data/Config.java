@@ -33,14 +33,14 @@ public class Config {
 	private static int lengthModelExon = 2;
 	/**
 	 * Multiplier by that the training data is longer than the analysis length (sequenceLength) <br/>
-	 * Has to be at least 2
+	 * Has to be at least 3
 	 */
-	private static int factor = 2;
+	private static int factor = 3;
 	/**
 	 * false 	-> GRCh37 will be used <br/>
 	 * true 	-> GRCh38 will be used
 	 */
-	public static int lengthIntronCryptic = 4;
+	public static int lengthIntronCryptic = 5;
 	private static boolean useGrch38 = false;
 //	/**
 //	 * Threshold for the difference of the sum of the individual information between reference and alternate

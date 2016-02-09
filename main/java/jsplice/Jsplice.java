@@ -24,6 +24,7 @@ public class Jsplice {
 	 * @throws Exception 
 	 */
 	public static void main(String[] args) throws IOException  {
+		try {
 		new Config();
 		new Functions();
 		new Log();
@@ -38,7 +39,7 @@ public class Jsplice {
 		for (int lenIntron = lenMax; lenIntron < lenMax+1; lenIntron++) {
 			System.gc();
 			Config.setLengthModelIntron(lenIntron);
-			System.out.println("len intron: " + Config.getLengthModelIntron());
+			Log.add("len intron: " + Config.getLengthModelIntron());
 			// ClinVar pathogene
 			Log.add("\n - - - ClinVar pathogene - - - ", 3);
 			ClinVarFile clinVarFile = new ClinVarFile(Config.getClinVarFileName(), false);
@@ -70,5 +71,10 @@ public class Jsplice {
 		Log.writeToFile();
 		System.out.println(Log.size());
 		System.out.println(Log.toStringStatic());
+		Log.close();
+		} catch (Exception e) {
+			Log.close();
+			e.printStackTrace();
+		}
 	}
 }

@@ -1,10 +1,9 @@
-package jsplice.tools;
+package jsplice.data;
 
 import java.util.ArrayList;
 
-import jsplice.data.RefGene;
-import jsplice.data.Sequence;
 import jsplice.io.Variants;
+import jsplice.tools.Filter;
 import sun.security.util.Length;
 
 /**

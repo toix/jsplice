@@ -53,6 +53,8 @@ public class Log {
 	 * All entries higher or equal to the priority level will be written to the log file
 	 */
 	private static int fileLogLevel = 2;
+	private static boolean fileExists = false;
+	private static FileWriter fWriter = null;
 
 	/**
 	 * 
@@ -68,6 +70,13 @@ public class Log {
 	public static void add(String message){
 		logEntries.add(message);
 		entryPriorities.add(6);
+	}
+	
+	public static void add(int message) {
+		add(message+"");
+	}
+	public static void add(double message) {
+		add(message+"");
 	}
 	
 	/**
@@ -101,22 +110,26 @@ public class Log {
 	 * Write log to File
 	 */
 	public static void writeToFile() {
-		File file = new File(Config.getLogFile());
-		FileWriter fWriter = null;
 		try {
-			// delete old file and create file
-			if (file.exists())
-				file.delete();
-			if (file.createNewFile()) {
-				file.setReadable(true);
+			String title = "";
+			if (!fileExists) {
+				File file = new File(Config.getLogFile());
+				// delete old file and create file
+				if (file.exists()){
+					file.delete();
+				}
+				fileExists = file.createNewFile();
+				title = "\t\t---   jsplice log File   ---";
 				fWriter = new FileWriter(file);
-				String title = "\t\t---   jsplice log File   ---";
+				file.setReadable(true);
+			}
+			if (fileExists) {
 				fWriter.write(title);
 				fWriter.append("\n");
 				// write variants lines to file
 				for (int i=0; i < logEntries.size(); i++) {
 					if (entryPriorities.get(i) >= fileLogLevel) {
-						fWriter.write(logEntries.get(i));
+						fWriter.write("[" + entryPriorities.get(i) + "] " + logEntries.get(i));
 						fWriter.append("\n");
 					}
 				}
@@ -124,15 +137,10 @@ public class Log {
 				System.out.println("Unable to create file.");
 		} catch (IOException e) {
 			e.printStackTrace();
-		} finally {
-			if (fWriter != null){
-				try {
-					fWriter.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
 		}
+		System.out.println(Log.toStringStatic());
+		logEntries = new ArrayList<String>();
+		entryPriorities = new ArrayList<Integer>();
 	}
 	
 	public static int getPrintLogLevel() {
@@ -175,5 +183,18 @@ public class Log {
 		entryPriorities = new ArrayList<Integer>();
 		printLogLevel = 3;
 		fileLogLevel = 2;
+	}
+
+	/**
+	 * 
+	 */
+	public static void close() {
+		if (fWriter != null){
+			try {
+				fWriter.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }

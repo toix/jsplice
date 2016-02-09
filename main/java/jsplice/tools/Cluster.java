@@ -156,17 +156,17 @@ public class Cluster {
 		}
 		InformationCore = getInformation(getPattern());
 		// Debug
-		if (getPattern().equals("CAAT")) {
-			System.out.println(toString());
-			System.out.println("\nprob");
-			for (int l = 0; l < lengthCluster; l++) {
-				System.out.println(Functions.arrayToString(countWeighted[l], 2));
-			}
-			System.out.println("\nmatrix");
-			for (int l = 0; l < lengthCluster; l++) {
-				System.out.println(Functions.arrayToString(weightMatrix[l], 2));
-			}
-		}
+//		if (getPattern().equals("CAAT")) {
+//			System.out.println(toString());
+//			System.out.println("\nprob");
+//			for (int l = 0; l < lengthCluster; l++) {
+//				System.out.println(Functions.arrayToString(countWeighted[l], 2));
+//			}
+//			System.out.println("\nmatrix");
+//			for (int l = 0; l < lengthCluster; l++) {
+//				System.out.println(Functions.arrayToString(weightMatrix[l], 2));
+//			}
+//		}
 		return weightMatrix;
 	}
 

@@ -9,6 +9,7 @@ import java.util.Arrays;
 import jsplice.data.Config;
 import jsplice.data.RefGene;
 import jsplice.data.Sequence;
+import jsplice.data.Sequences;
 import jsplice.data.Variant;
 import jsplice.exception.Log;
 import jsplice.io.Variants;
@@ -109,8 +110,8 @@ public class Model {
 			if (variantsP.size() < 1) {
 				throw new IllegalArgumentException("The parameter contains no variants.");
 			}
-			Variants variants = Filter.filterVariantType(variantsP, isAcceptor());
-			variants = Filter.extractCrypticVariants(variants, modelStd, modelStdOtherSide, isAcceptor(), false);
+			Variants variants = Filter.filterVariantType(variantsP, acceptorP);
+			variants = Filter.extractCrypticVariants(variants, modelStd, modelStdOtherSide, acceptorP, false);
 	//		variants = VariantFile.filterActivatingVariants(this.variants, modelStd, true);
 			variants = Filter.filterNonACGT(variants);
 			sequences = new Sequences(variants, acceptorP);
@@ -445,15 +446,16 @@ public class Model {
 	 * 
 	 * @param sequences
 	 * @param reference true -> reverence sequence is used; false -> the alternate sequence is used
+	 * @param cluster 
 	 * @return sum of Individual Information for every sequence
 	 */
-	public double[] getIndividualInformation(Sequences sequences, boolean reference) {
+	public double[] getIndividualInformation(Sequences sequences, boolean reference, boolean cluster) {
 		double[] indInfo = new double[sequences.size()];
 		for (int s = 0; s < sequences.size(); s++) {
 			Sequence sequence = sequences.get(s);
 			int junction = sequence.getPositionJunction();
 			indInfo[s] = getIndividualInformation(sequence, junction, reference, false).getTotalInformation();
-			if (filtered && Math.abs(sequence.getPositionChangeRelative()) > 3) {
+			if (cluster && Math.abs(sequence.getPositionChangeRelative()) > 3) {
 				indInfo[s] = sequence.getMaxPatternQty(AlgorithmAdministrator.quantityRelative, reference);
 			}
 		}

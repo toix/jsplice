@@ -5,6 +5,7 @@ package jsplice.tools;
 
 import static org.junit.Assert.*;
 import jsplice.data.Config;
+import jsplice.data.Sequences;
 import jsplice.exception.Log;
 import jsplice.io.ClinVarFile;
 import jsplice.io.FastaReferenceFiles;
@@ -132,7 +133,7 @@ public class FunctionsTest {
 	}
 
 	/**
-	 * Test method for {@link jsplice.tools.Sequences#convertToUpperBases(java.lang.String)}.
+	 * Test method for {@link jsplice.data.Sequences#convertToUpperBases(java.lang.String)}.
 	 */
 	@Test
 	public void testConvertToUpperBases() {
@@ -141,7 +142,7 @@ public class FunctionsTest {
 	}
 
 	/**
-	 * Test method for {@link jsplice.tools.Sequences#convertToUpperBases(java.lang.String)}.
+	 * Test method for {@link jsplice.data.Sequences#convertToUpperBases(java.lang.String)}.
 	 */
 	
 	@Test (expected = IllegalArgumentException.class)
@@ -150,7 +151,7 @@ public class FunctionsTest {
 	}
 	
 	/**
-	 * Test method for {@link jsplice.tools.Sequences#convertToUpperBases(java.lang.String)}.
+	 * Test method for {@link jsplice.data.Sequences#convertToUpperBases(java.lang.String)}.
 	 */
 	
 	@Test
@@ -160,7 +161,7 @@ public class FunctionsTest {
 	}
 
 	/**
-	 * Test method for {@link jsplice.tools.Sequences#getFrequencies(java.lang.String)}.
+	 * Test method for {@link jsplice.data.Sequences#getFrequencies(java.lang.String)}.
 	 */
 	@Test
 	public void testGetProbabilities() {
@@ -169,7 +170,7 @@ public class FunctionsTest {
 	}
 	
 	/**
-	 * Test method for {@link jsplice.tools.Sequences#getFrequencies(java.lang.String)}.
+	 * Test method for {@link jsplice.data.Sequences#getFrequencies(java.lang.String)}.
 	 */
 	@Test
 	public void testGetSequenceProbabilities() {
@@ -188,7 +189,7 @@ public class FunctionsTest {
 	
 
 	/**
-	 * Test method for {@link jsplice.tools.Sequences#getFrequencies(java.lang.String)}.
+	 * Test method for {@link jsplice.data.Sequences#getFrequencies(java.lang.String)}.
 	 */
 	@Test (expected = IllegalArgumentException.class)
 	public void testBadGetProbabilities() {

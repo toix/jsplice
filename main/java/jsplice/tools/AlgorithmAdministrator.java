@@ -15,6 +15,7 @@ import old.Genes;
 import jsplice.data.Config;
 import jsplice.data.Pattern;
 import jsplice.data.Sequence;
+import jsplice.data.Sequences;
 import jsplice.data.Variant;
 import jsplice.exception.Log;
 import jsplice.io.Variants;
@@ -33,8 +34,8 @@ public class AlgorithmAdministrator {
 	public AlgorithmAdministrator(Variants variantsPathogene, Variants variantsBenign) throws UnexpectedException {
 		
 		
-		System.out.println("#benign Variants: " + variantsBenign.size());
-		System.out.println("#pathogene Variants: " + variantsPathogene.size());
+		Log.add("#benign Variants: " + variantsBenign.size());
+		Log.add("#pathogene Variants: " + variantsPathogene.size());
 		boolean acceptor = true;
 		
 		// standard model pathogene
@@ -42,9 +43,17 @@ public class AlgorithmAdministrator {
 		Model modelStdAcc = new Model(variantsPathogene, acceptor);
 		Model modelStdDon = new Model(variantsPathogene, !acceptor);
 		
-//		Variants variantsPathogeneNonCry = Filter.extractCrypticVariants(variantsPathogene, modelStdAcc, modelStdDon, false);
+		// Filter
+		Variants variantsPathogeneNonCry = Filter.extractCrypticVariants(variantsPathogene, modelStdAcc, modelStdDon, false);
+//		variantsPathogene = VariantFile.concat(Filter.filterActivatingVariants(variantsPathogene, modelStdAcc, true), Filter.filterActivatingVariants(variantsPathogene, modelStdDon, true));
 		
-//		variantsPathogene = VariantFile.concat(VariantFile.filterActivatingVariants(variantsPathogene, modelStdAcc, true), VariantFile.filterActivatingVariants(variantsPathogene, modelStdDon, true));
+		// find ISEs
+		quantityRelative = findPattern(variantsPathogene, acceptor);
+		
+		String folder = "results/patternSep/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
+		crossValidate(variantsPathogene, variantsBenign, acceptor, folder);
+		
+		
 		
 		// separate training and test variants
 //		ArrayList<VariantFile> separatedVariants;
@@ -54,14 +63,6 @@ public class AlgorithmAdministrator {
 //		separatedVariants = separateData(variantsPathogene);
 //		variantsPathoTrain = separatedVariants.get(0);
 //		variantsPathoTest = separatedVariants.get(1);
-		
-		
-		
-		// find ISEs
-//		quantityRelative = findPattern(variantsPathogene, acceptor);
-		
-		String folder = "results/patternSep/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
-//		crossValidate(variantsPathogeneNonCry, variantsBenign, acceptor, folder);
 		
 //		System.out.println("\n\n - - - - - - - - - - - - - - - - - - - - - \n");
 //		String folder = "results/nonCryptic/";
@@ -257,7 +258,7 @@ public class AlgorithmAdministrator {
 			// create cluster for the best pattern and add all sub-pattern
 			double limit = 1;
 //			System.out.println("abs:" + quantityAbs);
-			System.out.println("con:" + quantityCondition);
+//			System.out.println("con:" + quantityCondition);
 //			System.out.println("rel:" + quantityRelative);
 			double quantityHighest;
 			HashMap<String, Cluster> clusterHash = new HashMap<String, Cluster>();
@@ -327,7 +328,8 @@ public class AlgorithmAdministrator {
 					clusterHash.put(key, cluster.get(c));
 				}
 			}
-			System.out.println(cluster);
+			Log.add(cluster+"", 2);
+			Log.writeToFile();
 			return clusterHash;
 		}
 
@@ -414,7 +416,6 @@ public class AlgorithmAdministrator {
 	 */
 	private void crossValidate(Variants variantsPathogene, Variants variantsBenign, boolean acceptor, String folder) throws UnexpectedException {
 		for (int i = 1; i < 31; i++) {
-			Log.reset();
 			System.out.println("\n\n - - - - - - - - - - - - - - - - - - - - - \n");
 			System.out.println("cross validation: " + i);
 			// separate training and test variants
@@ -435,14 +436,12 @@ public class AlgorithmAdministrator {
 			Log.add("\n - - - pathogene standard model - - - ", 3);
 			Model modelStdAcc = new Model(variantsPathoTrain, acceptor);
 			Log.add("Number of pathogene training sequences for acceptor site: " + modelStdAcc.getSequences().size(), 3);
-			Functions.writeToFile(modelStdAcc.matrixToString("standard matrix", modelStdAcc.getJunctionPosition()),
-					folder + "standardMatrix.tsv");
+			Functions.writeToFile(modelStdAcc.matrixToString("acceptor matrix", modelStdAcc.getJunctionPosition()),
+					folder + "accMatrix.tsv");
 			Model modelStdDon = new Model(variantsPathoTrain, !acceptor);
 			Log.add("Number of pathogene training sequences for donor site: " + modelStdDon.getSequences().size(), 3);
-			// change model pathogene
-			Log.add("\n - - - pathogene change model - - - ", 3);
-			Model modelChAcc = new Model(variantsPathoTrain, modelStdAcc, modelStdDon, acceptor);
-			Functions.writeToFile(modelChAcc.matrixToString("change matrix", modelChAcc.getJunctionPosition()), folder + "changeMatrix.tsv");
+			Functions.writeToFile(modelStdAcc.matrixToString("donor matrix", modelStdDon.getJunctionPosition()),
+					folder + "donMatrix.tsv");
 			// create pathogene test sequences
 			Log.add("\n - - - pathogene test variants - - - ", 3);
 			// variantsPathoTest = VariantFile.extractCrypticVariants(variantsPathoTest, modelStdAcc, modelStdDon, false);
@@ -453,74 +452,16 @@ public class AlgorithmAdministrator {
 			Sequences sequencesBenTestAcc = new Sequences(variantsBenTest, acceptor);
 			
 			// write benign results to file
-			String standardResultsBenign = getResultsTable(sequencesBenTestAcc, modelStdAcc);
+			String standardResultsBenign = getResultsTable(sequencesBenTestAcc, modelStdAcc, false);
 			Functions.writeToFile(standardResultsBenign, folder + "benAccStd" + i + ".tsv");
-			String changeResultsBeingn = getResultsTable(sequencesBenTestAcc, modelChAcc);
+			String changeResultsBeingn = getResultsTable(sequencesBenTestAcc, modelStdAcc, true);
 			Functions.writeToFile(changeResultsBeingn, folder + "benAccChg" + i + ".tsv");
 			// write pathogene results to file
-			String standardResultsPathogene = getResultsTable(sequencesPathoTestAcc, modelStdAcc);
+			String standardResultsPathogene = getResultsTable(sequencesPathoTestAcc, modelStdAcc, false);
 			Functions.writeToFile(standardResultsPathogene, folder + "pathoAccStd" + i + ".tsv");
-			String changeResultsPathogene = getResultsTable(sequencesPathoTestAcc, modelChAcc);
+			String changeResultsPathogene = getResultsTable(sequencesPathoTestAcc, modelStdAcc, true);
 			Functions.writeToFile(changeResultsPathogene, folder + "pathoAccChg" + i + ".tsv");
-		}
-	}
-
-	/**
-	 * @param variantsBenign 
-	 * @param variantsPathogene 
-	 * @throws UnexpectedException 
-	 * 
-	 */
-	private void crossValidate(Variants variantsPathogene, Variants variantsBenign, boolean acceptor) throws UnexpectedException {
-		String folder = "results/nonCryptic/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
-		for (int i = 1; i < 31; i++) {
-			Log.reset();
-			System.out.println("cross validation: " + i);
-			// separate training and test variants
-			Log.add("Run Nr. " + i, 3);
-			ArrayList<Variants> separatedVariants;
-			separatedVariants = separateData(variantsBenign);
-			variantsBenTrain = separatedVariants.get(0);
-			variantsBenTest = separatedVariants.get(1);
-			separatedVariants = separateData(variantsPathogene);
-			variantsPathoTrain = separatedVariants.get(0);
-			variantsPathoTest = separatedVariants.get(1);
-			
-//			System.out.println("\n\n - - - - - - - - - - - - - - - - - - - - - \n");
-			// VariantFile trainVariantsBenign = clinVarBenign.filteVariants(intronExon);
-			// trainVariantsBenign = trainVariantsBenign.filterNonACGT();
-			// Sequences standardModel = new Sequences(trainVariantsBenign, intronExon, false);
-			// standard model pathogene
-			Log.add("\n - - - pathogene standard model - - - ", 3);
-			Model modelStdAcc = new Model(variantsPathoTrain, acceptor);
-			Log.add("Number of pathogene training sequences for acceptor site: " + modelStdAcc.getSequences().size(), 3);
-			Functions.writeToFile(modelStdAcc.matrixToString("standard matrix", modelStdAcc.getJunctionPosition()),
-					folder + "standardMatrix.tsv");
-			Model modelStdDon = new Model(variantsPathoTrain, !acceptor);
-			Log.add("Number of pathogene training sequences for donor site: " + modelStdDon.getSequences().size(), 3);
-			// change model pathogene
-			Log.add("\n - - - pathogene change model - - - ", 3);
-			Model modelFilterAcc = new Model(variantsPathoTrain, modelStdAcc, modelStdDon, acceptor);
-			Functions.writeToFile(modelFilterAcc.matrixToString("change matrix", modelFilterAcc.getJunctionPosition()), folder + "changeMatrix.tsv");
-			// create pathogene test sequences
-			Log.add("\n - - - pathogene test variants - - - ", 3);
-			// variantsPathoTest = VariantFile.extractCrypticVariants(variantsPathoTest, modelStdAcc, modelStdDon, false);
-			Sequences sequencesPathoTestAcc = new Sequences(variantsPathoTest, acceptor);
-			Log.add("Number of pathogene test sequences for acceptor site: " + sequencesPathoTestAcc.size(), 3);
-			// create benign test sequences
-			Log.add("\n - - - benign test variants - - - ", 3);
-			Sequences sequencesBenTestAcc = new Sequences(variantsBenTest, acceptor);
-			
-			// write benign results to file
-			String standardResultsBenign = getResultsTable(sequencesBenTestAcc, modelStdAcc);
-			Functions.writeToFile(standardResultsBenign, folder + "benAccStd" + i + ".tsv");
-			String changeResultsBeingn = getResultsTable(sequencesBenTestAcc, modelFilterAcc);
-			Functions.writeToFile(changeResultsBeingn, folder + "benAccChg" + i + ".tsv");
-			// write pathogene results to file
-			String standardResultsPathogene = getResultsTable(sequencesPathoTestAcc, modelStdAcc);
-			Functions.writeToFile(standardResultsPathogene, folder + "pathoAccStd" + i + ".tsv");
-			String changeResultsPathogene = getResultsTable(sequencesPathoTestAcc, modelFilterAcc);
-			Functions.writeToFile(changeResultsPathogene, folder + "pathoAccChg" + i + ".tsv");
+			Log.writeToFile();
 		}
 	}
 
@@ -568,11 +509,12 @@ public class AlgorithmAdministrator {
 
 	/**
 	 * @param testSequences
+	 * @param cluster 
 	 * @return
 	 */
-	private static String getResultsTable(Sequences testSequences,  Model modelStdAcc) {
-		double[] resultsReference = modelStdAcc.getIndividualInformation(testSequences, true);
-		double[] resultsAlternate = modelStdAcc.getIndividualInformation(testSequences, false);
+	private static String getResultsTable(Sequences testSequences,  Model modelStdAcc, boolean cluster) {
+		double[] resultsReference = modelStdAcc.getIndividualInformation(testSequences, true, cluster);
+		double[] resultsAlternate = modelStdAcc.getIndividualInformation(testSequences, false, cluster);
 		String results = "";
 		String line = "pos\t r\t a\t ref\t  alt";
 		results += line;
@@ -593,10 +535,10 @@ public class AlgorithmAdministrator {
 	 * @return
 	 */
 	private static String getDifferences(Sequences testSequences,  Model modelStd, Model modelCh) {
-		double[] resultsReferenceStd = modelStd.getIndividualInformation(testSequences, true);
-		double[] resultsAlternateStd = modelStd.getIndividualInformation(testSequences, false);
-		double[] resultsReferenceCh = modelCh.getIndividualInformation(testSequences, true);
-		double[] resultsAlternateCh = modelCh.getIndividualInformation(testSequences, false);
+		double[] resultsReferenceStd = modelStd.getIndividualInformation(testSequences, true, false);
+		double[] resultsAlternateStd = modelStd.getIndividualInformation(testSequences, false, false);
+		double[] resultsReferenceCh = modelCh.getIndividualInformation(testSequences, true, false);
+		double[] resultsAlternateCh = modelCh.getIndividualInformation(testSequences, false, false);
 		String results = "";
 		String line = "pos\t r\t a\t ref\t  alt";
 		results += line;

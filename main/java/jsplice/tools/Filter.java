@@ -235,7 +235,7 @@ public class Filter {
 		if (variantsDon.size() > 0) {
 			variantsDon = extractCrypticVariants(variantsDon, modelAcc, modelDon, false, returnCryptic);
 		}
-		
+		Log.writeToFile();
 		return Variants.concat(variantsAcc, variantsDon);
 	}
 
@@ -273,11 +273,11 @@ public class Filter {
 			
 			int count = 0;
 		
-			System.out.println("calc cryptic Inf...");
+			Log.add("calc cryptic Inf...", 2);
 			// calculate Individual Information for all sequences at all positions
 			for (int v = 0; v < variantsP.size(); v++) {
 				Variant variant = variantsP.get(v);
-				Log.add(variant.toString(), 2);
+				Log.add(variant.toString(), 1);
 				Sequence sequence = variant.getSequence();
 				if (sequence.isAcceptor() != acceptorVariants) {
 					throw new IllegalArgumentException("Variant is " + (sequence.isAcceptor() ? "acceptor" : "donor")
@@ -312,15 +312,15 @@ public class Filter {
 				// penalty
 				if (acceptorVariants) {
 					int junctionPosition = sequence.getPositionJunction() - minAcc;
-					Log.add("acceptor", 2);
+					Log.add("acceptor", 1);
 					isCrypticAcceptorSite = isCryptic(totalInformationRefAcc[v], totalInformationAltAcc[v], junctionPosition, false) != null;
-					Log.add("donor", 2);
+					Log.add("donor", 1);
 					isCrypticDonorSite = isCryptic(totalInformationRefDon[v], totalInformationAltDon[v], junctionPosition, true) != null;
 				} else {
 					int junctionPosition = sequence.getPositionJunction() - minDon;
-					Log.add("acceptor", 2);
+					Log.add("acceptor", 1);
 					isCrypticAcceptorSite = isCryptic(totalInformationRefAcc[v], totalInformationAltAcc[v], junctionPosition, true) != null;
-					Log.add("donor", 2);
+					Log.add("donor", 1);
 					isCrypticDonorSite = isCryptic(totalInformationRefDon[v], totalInformationAltDon[v], junctionPosition, false) != null;
 				}
 				boolean isCrypticSite = isCrypticAcceptorSite || isCrypticDonorSite;
@@ -331,7 +331,7 @@ public class Filter {
 					count++;
 				}
 			}
-			System.out.println("calculated");
+			Log.add("calculated", 2);
 			Log.add("Number of " + (acceptorVariants ? "ACCEPTOR" : "DONOR") + " variants containing " + (returnCryptic ? "NO" : "A")
 					+ " cryptic splice site: " + count + "\t Number of Variants left: " + variants.size(), 3);
 			return variants;
@@ -349,7 +349,7 @@ public class Filter {
 		 * @return whether the sequence is probably cryptic
 		 */
 		public static Integer isCryptic(Result[] totalInformationRef, Result[] totalInformationAlt, int naturalJunction, boolean penalty) {
-			Integer posCryptic = 0;
+			Integer posCryptic = null;
 			double informationCrypticMax = -100;
 			// decrease of individual information at the natural site
 			double informationNaturalRef = totalInformationRef[naturalJunction].getTotalInformation();
@@ -359,9 +359,9 @@ public class Filter {
 				informationNaturalRef = 0;
 			} else if (informationNaturalAlt < 0) {
 				// total cryptic alt has to be at least 0
-				Log.add("totalNaturalAlt log: " + informationNaturalAlt, 2) ;
+				Log.add("totalNaturalAlt log: " + informationNaturalAlt, 1) ;
 				informationNaturalAlt = -Math.log10(-informationNaturalAlt+1);
-				Log.add(" -> " + informationNaturalAlt, 2);
+				Log.add(" -> " + informationNaturalAlt, 1);
 			}
 			double naturalDecrease = informationNaturalRef - informationNaturalAlt;
 			for (int l = 0; l < totalInformationAlt.length; l++) {
@@ -377,7 +377,7 @@ public class Filter {
 						&& naturalDecrease + crypticIncrease >= 1) {
 					Log.add("Position " + totalInformationRef[l].position + " IS  cryptic " + (penalty ? "with penalty" : "without penalty") + ": natural "
 							+ informationNaturalRef + " > " + informationNaturalAlt + "\t cryptic " + informationCrypticRef + " > "
-							+ informationCrypticAlt, 2);
+							+ informationCrypticAlt, 1);
 					if (informationCrypticMax < informationCrypticAlt) {
 						informationCrypticMax = informationCrypticAlt;
 						posCryptic = totalInformationRef[l].position;
@@ -386,7 +386,7 @@ public class Filter {
 				else if (l != naturalJunction && informationCrypticAlt > -1 && crypticIncrease > -3 && naturalDecrease >= 0) {
 					Log.add("Position " + totalInformationRef[l].position + " NOT cryptic " + (penalty ? "with penalty" : "without penalty") + ": natural "
 							+ informationNaturalRef + " > " + informationNaturalAlt + "\t cryptic " + informationCrypticRef + " > "
-							+ informationCrypticAlt, 2);
+							+ informationCrypticAlt, 1);
 				}
 			}
 			return posCryptic;

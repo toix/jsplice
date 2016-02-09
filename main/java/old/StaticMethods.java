@@ -10,13 +10,13 @@ import java.util.HashMap;
 import java.util.List;
 
 import jsplice.data.Sequence;
+import jsplice.data.Sequences;
 import jsplice.data.Variant;
 import jsplice.exception.Log;
 import jsplice.io.Variants;
 import jsplice.tools.AlgorithmAdministrator;
 import jsplice.tools.Filter;
 import jsplice.tools.Functions;
-import jsplice.tools.Sequences;
 
 /**
  * @author Tobias Gresser (gresserT@gmail.com)
