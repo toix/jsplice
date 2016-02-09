@@ -40,7 +40,7 @@ public class Config {
 	 * false 	-> GRCh37 will be used <br/>
 	 * true 	-> GRCh38 will be used
 	 */
-	public static int lengthIntronCryptic = 5;
+	public static int lengthIntronCryptic = 3;
 	private static boolean useGrch38 = false;
 //	/**
 //	 * Threshold for the difference of the sum of the individual information between reference and alternate

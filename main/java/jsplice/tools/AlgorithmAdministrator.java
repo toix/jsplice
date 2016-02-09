@@ -44,7 +44,7 @@ public class AlgorithmAdministrator {
 		Model modelStdDon = new Model(variantsPathogene, !acceptor);
 		
 		// Filter
-		Variants variantsPathogeneNonCry = Filter.extractCrypticVariants(variantsPathogene, modelStdAcc, modelStdDon, false);
+//		Variants variantsPathogeneNonCry = Filter.extractCrypticVariants(variantsPathogene, modelStdAcc, modelStdDon, false);
 //		variantsPathogene = VariantFile.concat(Filter.filterActivatingVariants(variantsPathogene, modelStdAcc, true), Filter.filterActivatingVariants(variantsPathogene, modelStdDon, true));
 		
 		// find ISEs
