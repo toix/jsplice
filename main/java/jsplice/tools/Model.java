@@ -3,8 +3,6 @@
  */
 package jsplice.tools;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -71,7 +69,9 @@ public class Model {
 		}
 		this.sequences = new Sequences(variantsP, acceptorP);
 		weightMatrix = calculateMatrix();
-		clusterHash = findPattern(variantsP, acceptorP);
+		if (acceptorP) {
+			clusterHash = findPattern(variantsP, acceptorP);
+		}
 		this.filtered = false;
 	}
 
@@ -91,7 +91,9 @@ public class Model {
 		variants = Filter.filterNonACGT(variants);
 		sequences = new Sequences(variants, acceptorP);
 		weightMatrix = calculateMatrix();
-		clusterHash = findPattern(variantsP, acceptorP);
+		if (acceptorP) {
+			clusterHash = findPattern(variantsP, acceptorP);
+		}
 		this.filtered = true;
 	}
 
@@ -511,57 +513,54 @@ public class Model {
 	 * 
 	 * important sequence as non-sub-pattern?
 	 * 
-	 * @param variants
-	 * @param acceptor
+	 * @param variantsP
+	 * @param acceptorP
 	 */
-	static HashMap<String,Cluster> findPattern(Variants variants, boolean acceptor) {
+	static HashMap<String,Cluster> findPattern(Variants variantsP, boolean acceptorP) {
 		int lengthIntronMax = Config.lengthIntronPatternMax;
-		variants = Filter.filterVariantType(variants, acceptor);
-		variants = Filter.extractVariantsInRelativeRange(variants, 4, 20);
-		variants = Filter.deleteDuplicateJunctions(variants);
+		variantsP = Filter.filterVariantType(variantsP, acceptorP);
+		variantsP = Filter.extractVariantsInRelativeRange(variantsP, 4, 20);
+		variantsP = Filter.deleteDuplicateJunctions(variantsP);
 		HashMap<String, Integer> quantityAbs = new HashMap<String, Integer>();
 		HashMap<String, Integer> quantityCondition = new HashMap<String, Integer>();
 		int numOfPattern[] = Functions.getInitializedIntArray(lengthIntronMax + 1);
-		Log.add("Creating cluster with " + variants.size() + " variants.", 3);
-		for (int i = 0; i < variants.size(); i++) {
-			Sequence sequence = variants.get(i).getSequence();
-			int posChangeRel = sequence.getPositionChangeRelative();
+		Log.add("Creating cluster with " + variantsP.size() + (acceptorP ? " acceptor" : " donor") + " variants.", 3);
+		for (int i = 0; i < variantsP.size(); i++) {
+			Sequence sequence = variantsP.get(i).getSequence();
 			int posChangeAbs = sequence.getPositionChange();
 			// count pattern on the variant position and in other sequences at the same position
-			if (posChangeRel >= -35 && posChangeRel <= -4) {
-				for (int length = 1; length <= lengthIntronMax; length++) {
-					for (int shift = 0; shift < length; shift++) {
-						int from = posChangeAbs + shift - length + 1;
-						int to = posChangeAbs + shift;
-						int junction = sequence.getPositionJunction();
-						if (Math.abs(from - junction) > 3	&& Math.abs(to - junction) > 3) {
-							String patternRef = sequence.substring(from, to + 1);
-							if (!quantityAbs.containsKey(patternRef)) {
-								quantityAbs.put(patternRef, 1);
-							} else {
-								quantityAbs.put(patternRef, quantityAbs.get(patternRef) + 1);
-							}
-							// condition
-							String patternAlt = sequence.substring(from, to + 1, false);
-							if (!quantityCondition.containsKey(patternAlt)) {
-								quantityCondition.put(patternAlt, 1);
-							} else {
-								quantityCondition.put(patternAlt, quantityCondition.get(patternAlt) + 1);
-							}
-							numOfPattern[length]++;
+			for (int length = 1; length <= lengthIntronMax; length++) {
+				for (int shift = 0; shift < length; shift++) {
+					int from = posChangeAbs + shift - length + 1;
+					int to = posChangeAbs + shift;
+					int junction = sequence.getPositionJunction();
+					if (Math.abs(from - junction) > 3	&& Math.abs(to - junction) > 3) {
+						String patternRef = sequence.substring(from, to + 1);
+						if (!quantityAbs.containsKey(patternRef)) {
+							quantityAbs.put(patternRef, 1);
+						} else {
+							quantityAbs.put(patternRef, quantityAbs.get(patternRef) + 1);
 						}
+						// condition
+						String patternAlt = sequence.substring(from, to + 1, false);
+						if (!quantityCondition.containsKey(patternAlt)) {
+							quantityCondition.put(patternAlt, 1);
+						} else {
+							quantityCondition.put(patternAlt, quantityCondition.get(patternAlt) + 1);
+						}
+						numOfPattern[length]++;
 					}
 				}
 			}
 		}
 
-		HashMap<String, Pattern> pattern = Model.createPattern(quantityAbs, quantityCondition);
+		ArrayList<Pattern> pattern = Model.createPattern(quantityAbs, quantityCondition);
 
 		ArrayList<Cluster> cluster = createCluster(pattern);
 
 		cluster = mergeCluster(cluster);
 
-		cluster = countClusterInSequences(cluster, variants);
+		cluster = countClusterInSequences(cluster, variantsP);
 		
 		HashMap<String, Cluster> clusterHash = createHash(cluster);
 		
@@ -637,49 +636,47 @@ public class Model {
 	 * @param patternP
 	 * @return 
 	 */
-	private static ArrayList<Cluster> createCluster(HashMap<String, Pattern> patternP) {
+	private static ArrayList<Cluster> createCluster(ArrayList<Pattern> patternP) {
 		double limit = 0.9;
 		ArrayList<Cluster> cluster = new ArrayList<Cluster>();
-		Pattern patternBest;
-		do {
-			patternBest = findHighestPattern(patternP);
+		Pattern patternBest = findHighestPattern(patternP);
+		while (patternBest.getQuantityRelative() > limit) {
 			if (patternBest.getQuantityRelative() > limit) {
 				Cluster clusterNew = new Cluster(patternBest);
 				cluster.add(clusterNew);
 				patternP.remove(patternBest);
-				Iterator<Entry<String, Pattern>> patternIt = patternP.entrySet().iterator();
-				while (patternIt.hasNext()) {
-					Pattern patternCurrent = patternIt.next().getValue();
+				for (int p = 0; p < patternP.size(); p++) {
+					Pattern patternCurrent = patternP.get(p);
 					if (patternBest.contains(patternCurrent)) {
 						clusterNew.addSub(patternCurrent);
 						double percentage = (double) patternCurrent.quantityAbs / patternBest.quantityAbs;
 						if (percentage > 0.5) {
-							patternIt.remove();
+							patternP.remove(patternCurrent);
 						} else {
 							patternCurrent.quantityAbs -= patternBest.quantityAbs;
 						}
 					}
 				}
 			}
-		} while (patternBest.getQuantityRelative() > limit);
+			patternBest = findHighestPattern(patternP);
+		} 
 		return cluster;
 	}
 
 	/**
-	 * @param pattern
+	 * @param patternP
 	 * @return
 	 */
-	private static Pattern findHighestPattern(HashMap<String, Pattern> pattern) {
-		Iterator<Entry<String, Pattern>> patternIt = pattern.entrySet().iterator();
+	private static Pattern findHighestPattern(ArrayList<Pattern> patternP) {
 		double valueMax = -1000000000;
 		Pattern patternMax = null;
 		// crate a cluster for relevant pattern and remove short ones
-		while (patternIt.hasNext()) {
-			Entry<String, Pattern> entry = patternIt.next();
-			Pattern patternCurrent = (Pattern) entry.getValue();
+		for (Pattern patternCurrent : patternP) {
+//			Log.add(patternMax + " < " + patternCurrent.getQuantityRelative() + "\t " + (valueMax < patternCurrent.getQuantityRelative()));
 			if (valueMax < patternCurrent.getQuantityRelative()) {
 				valueMax = patternCurrent.getQuantityRelative();
 				patternMax = patternCurrent;
+//				Log.add(patternMax);
 			}
 		}
 		return patternMax;
@@ -691,8 +688,8 @@ public class Model {
 	 * @param quantityCondition
 	 * @return 
 	 */
-	public static HashMap<String, Pattern> createPattern(HashMap<String, Integer> quantityAbsolute, HashMap<String,Integer> quantityCondition) {
-		HashMap<String, Pattern> pattern = new HashMap<String, Pattern>();
+	public static ArrayList<Pattern> createPattern(HashMap<String, Integer> quantityAbsolute, HashMap<String,Integer> quantityCondition) {
+		ArrayList<Pattern> pattern = new ArrayList<Pattern>(quantityAbsolute.size());
 		Iterator<Entry<String, Integer>> patternIt = quantityAbsolute.entrySet().iterator();
 		while (patternIt.hasNext()) {
 			Entry<String, Integer> entry = patternIt.next();
@@ -703,7 +700,7 @@ public class Model {
 				quantityCon = quantityCondition.get(patternKey);
 			}
 			Pattern patternNew = new Pattern(patternKey, quantityAbs, quantityCon);
-			pattern.put(patternKey, patternNew);
+			pattern.add(patternNew);
 		}
 		return pattern;
 	}

@@ -67,16 +67,9 @@ public class Log {
 	 * Add an error string with priority 6
 	 * @param message 
 	 */
-	public static void add(String message){
-		logEntries.add(message);
+	public static void add(Object message){
+		logEntries.add(message.toString());
 		entryPriorities.add(6);
-	}
-	
-	public static void add(int message) {
-		add(message+"");
-	}
-	public static void add(double message) {
-		add(message+"");
 	}
 	
 	/**
@@ -85,10 +78,10 @@ public class Log {
 	 * @param priority int between 1 and 6: <br/>
 	 * 1 Trace, 2 Debug, 3 Info, 4 Warn, 5 Error, 6 Fatal
 	 */
-	public static void add(String message, int priority){
+	public static void add(Object message, int priority){
 		if(priority > 6 || priority < 1)
 			throw new IllegalArgumentException("Priority level has to be between 1 and 6: " + priority);
-		logEntries.add(message);
+		logEntries.add(message.toString());
 		entryPriorities.add(priority);
 	}
 
