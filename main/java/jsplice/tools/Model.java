@@ -531,125 +531,126 @@ public class Model {
 	}
 
 	/**
-		 * TODO donor site 
-		 * TODO sub of merged pattern to non sub important pattern when containing it -> -1%
-		 * TODO limit cluster        merging OR subtract/check quantity of the important cluster from the longer cluster 
-		 * TODO penalty with cluster out of conditional (cryptic)
-		 * TODO separate cluster for splice site
-		 * TODO respect average/median position in cluster
-		 * 
-		 * important sequence as non-sub-pattern?
-		 * 
-		 * @param variants
-		 * @param acceptor
-		 */
-			static HashMap<String,Cluster> findPattern(Variants variants, boolean acceptor) {
-				int lengthIntronMax = Config.lengthIntronPatternMax;
-				variants = Filter.filterVariantType(variants, acceptor);
-				variants = Filter.extractVariantsInRange(variants, -20, -4);
-				variants = Filter.deleteDuplicateJunctions(variants);
-				HashMap<String, Integer> quantityAbs = new HashMap<String, Integer>();
-				HashMap<String, Integer> quantityCondition = new HashMap<String, Integer>();
-				int numOfPattern[] = Functions.getInitializedIntArray(lengthIntronMax + 1);
-				for (int i = 0; i < variants.size(); i++) {
-					Sequence sequence = variants.get(i).getSequence();
-					int posChangeRel = sequence.getPositionChangeRelative();
-					int posChangeAbs = sequence.getPositionChange();
-					// count pattern on the variant position and in other sequences at the same position
-					if (posChangeRel >= -35 && posChangeRel <= -4) {
-						for (int length = 1; length <= lengthIntronMax; length++) {
-							for (int shift = 0; shift < length; shift++) {
-								int from = posChangeAbs + shift - length + 1;
-								int to = posChangeAbs + shift;
-								int junction = sequence.getPositionJunction();
-								if (Math.abs(from - junction) > 3	&& Math.abs(to - junction) > 3) {
-									String patternRef = sequence.substring(from, to + 1);
-									if (!quantityAbs.containsKey(patternRef)) {
-										quantityAbs.put(patternRef, 1);
-									} else {
-										quantityAbs.put(patternRef, quantityAbs.get(patternRef) + 1);
-									}
-									// condition
-									String patternAlt = sequence.substring(from, to + 1, false);
-									if (!quantityCondition.containsKey(patternAlt)) {
-										quantityCondition.put(patternAlt, 1);
-									} else {
-										quantityCondition.put(patternAlt, quantityCondition.get(patternAlt) + 1);
-									}
-									numOfPattern[length]++;
-								}
+	 * Find all containing the Variant position and cluster them.
+	 * TODO donor site 
+	 * TODO sub of merged pattern to non sub important pattern when containing it -> -1%
+	 * TODO limit cluster        merging OR subtract/check quantity of the important cluster from the longer cluster 
+	 * TODO penalty with cluster out of conditional (cryptic)
+	 * TODO separate cluster for splice site
+	 * TODO respect average/median position in cluster
+	 * 
+	 * important sequence as non-sub-pattern?
+	 * 
+	 * @param variants
+	 * @param acceptor
+	 */
+	static HashMap<String,Cluster> findPattern(Variants variants, boolean acceptor) {
+		int lengthIntronMax = Config.lengthIntronPatternMax;
+		variants = Filter.filterVariantType(variants, acceptor);
+		variants = Filter.extractVariantsInRange(variants, -20, -4);
+		variants = Filter.deleteDuplicateJunctions(variants);
+		HashMap<String, Integer> quantityAbs = new HashMap<String, Integer>();
+		HashMap<String, Integer> quantityCondition = new HashMap<String, Integer>();
+		int numOfPattern[] = Functions.getInitializedIntArray(lengthIntronMax + 1);
+		for (int i = 0; i < variants.size(); i++) {
+			Sequence sequence = variants.get(i).getSequence();
+			int posChangeRel = sequence.getPositionChangeRelative();
+			int posChangeAbs = sequence.getPositionChange();
+			// count pattern on the variant position and in other sequences at the same position
+			if (posChangeRel >= -35 && posChangeRel <= -4) {
+				for (int length = 1; length <= lengthIntronMax; length++) {
+					for (int shift = 0; shift < length; shift++) {
+						int from = posChangeAbs + shift - length + 1;
+						int to = posChangeAbs + shift;
+						int junction = sequence.getPositionJunction();
+						if (Math.abs(from - junction) > 3	&& Math.abs(to - junction) > 3) {
+							String patternRef = sequence.substring(from, to + 1);
+							if (!quantityAbs.containsKey(patternRef)) {
+								quantityAbs.put(patternRef, 1);
+							} else {
+								quantityAbs.put(patternRef, quantityAbs.get(patternRef) + 1);
 							}
-						}
-					}
-				}
-				
-				// quantityAbs / quantityCondition
-				// TODO rename
-				HashMap<String, Pattern> quantityRelative = Model.relativeQuantity(quantityAbs, quantityCondition);
-				
-				// create cluster for the best pattern and add all sub-pattern
-				double limit = 0.9;
-				HashMap<String, Cluster> clusterHash = new HashMap<String, Cluster>();
-				ArrayList<Cluster> cluster = new ArrayList<Cluster>();
-				Pattern patternBest;
-				do {
-					patternBest = findHighestPattern(quantityRelative);
-					// add similar pattern to cluster
-					if (patternBest.getQuantityRelative() > limit) {
-						Cluster clusterNew = new Cluster(patternBest);
-						cluster.add(clusterNew);
-						quantityRelative.remove(patternBest);
-						Iterator<Entry<String, Pattern>> patternIt = quantityRelative.entrySet().iterator();
-						while (patternIt.hasNext()) {
-							Pattern pattern = patternIt.next().getValue();
-							if (patternBest.contains(pattern)) {
-								clusterNew.addSub(pattern);
-								double percentage = (double) pattern.quantityAbs / patternBest.quantityAbs;
-								if (percentage > 0.5) {
-									patternIt.remove();
-								} else {
-									pattern.quantityAbs -= patternBest.quantityAbs;
-								}
+							// condition
+							String patternAlt = sequence.substring(from, to + 1, false);
+							if (!quantityCondition.containsKey(patternAlt)) {
+								quantityCondition.put(patternAlt, 1);
+							} else {
+								quantityCondition.put(patternAlt, quantityCondition.get(patternAlt) + 1);
 							}
-						}
-					}
-				} while (patternBest.getQuantityRelative() > limit);
-				// add all cluster as subset of the more important cluster
-				for (int i = 0; i < cluster.size(); i++) {
-					String patternMain = cluster.get(i).getPattern();
-					for (int j = i+1; j < cluster.size();) {
-						//  if subset cluster contains the substring of the important cluster
-						if (i != j && cluster.get(j).getPattern().contains(patternMain)) {
-							cluster.get(i).add(cluster.get(j));
-							cluster.remove(j);
-						} else {
-							j++;
+							numOfPattern[length]++;
 						}
 					}
 				}
-				for (int c = 0; c < cluster.size(); c++) {
-					// add only the best sequence to each cluster
-					cluster.get(c).sortPattern();
-					String pattern = cluster.get(c).getPattern();
-					for (int v = 0; v < variants.size(); v++) {
-						int posChange = variants.get(v).getSequence().getPositionChange();
-						int min = posChange - lengthIntronMax + 1;
-						int max = posChange + lengthIntronMax - 1;
-						String sequence = variants.get(v).getSequence().substring(min, max);
-						if (sequence.contains(pattern)) {
-							cluster.get(c).addQuantity(sequence);
-						}
-					}
-					// create hash to cluster by its pattern
-					for (int p = 0; p < cluster.get(c).size(); p++) {
-						String key = cluster.get(c).getPattern(p).pattern;
-						clusterHash.put(key, cluster.get(c));
-					}
-				}
-				Log.add(cluster+"", 2);
-				Log.writeToFile();
-				return clusterHash;
 			}
+		}
+
+		// quantityAbs / quantityCondition
+		// TODO rename
+		HashMap<String, Pattern> quantityRelative = Model.relativeQuantity(quantityAbs, quantityCondition);
+
+		// create cluster for the best pattern and add all sub-pattern
+		double limit = 0.9;
+		HashMap<String, Cluster> clusterHash = new HashMap<String, Cluster>();
+		ArrayList<Cluster> cluster = new ArrayList<Cluster>();
+		Pattern patternBest;
+		do {
+			patternBest = findHighestPattern(quantityRelative);
+			// add similar pattern to cluster
+			if (patternBest.getQuantityRelative() > limit) {
+				Cluster clusterNew = new Cluster(patternBest);
+				cluster.add(clusterNew);
+				quantityRelative.remove(patternBest);
+				Iterator<Entry<String, Pattern>> patternIt = quantityRelative.entrySet().iterator();
+				while (patternIt.hasNext()) {
+					Pattern pattern = patternIt.next().getValue();
+					if (patternBest.contains(pattern)) {
+						clusterNew.addSub(pattern);
+						double percentage = (double) pattern.quantityAbs / patternBest.quantityAbs;
+						if (percentage > 0.5) {
+							patternIt.remove();
+						} else {
+							pattern.quantityAbs -= patternBest.quantityAbs;
+						}
+					}
+				}
+			}
+		} while (patternBest.getQuantityRelative() > limit);
+		// add all cluster as subset of the more important cluster
+		for (int i = 0; i < cluster.size(); i++) {
+			String patternMain = cluster.get(i).getPattern();
+			for (int j = i+1; j < cluster.size();) {
+				//  if subset cluster contains the substring of the important cluster
+				if (i != j && cluster.get(j).getPattern().contains(patternMain)) {
+					cluster.get(i).add(cluster.get(j));
+					cluster.remove(j);
+				} else {
+					j++;
+				}
+			}
+		}
+		for (int c = 0; c < cluster.size(); c++) {
+			// add only the best sequence to each cluster
+			cluster.get(c).sortPattern();
+			String pattern = cluster.get(c).getPattern();
+			for (int v = 0; v < variants.size(); v++) {
+				int posChange = variants.get(v).getSequence().getPositionChange();
+				int min = posChange - lengthIntronMax + 1;
+				int max = posChange + lengthIntronMax - 1;
+				String sequence = variants.get(v).getSequence().substring(min, max);
+				if (sequence.contains(pattern)) {
+					cluster.get(c).addQuantity(sequence);
+				}
+			}
+			// create hash to cluster by its pattern
+			for (int p = 0; p < cluster.get(c).size(); p++) {
+				String key = cluster.get(c).getPattern(p).pattern;
+				clusterHash.put(key, cluster.get(c));
+			}
+		}
+		Log.add(cluster+"", 2);
+		Log.writeToFile();
+		return clusterHash;
+	}
 
 	/**
 	 * @param pattern
