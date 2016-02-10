@@ -18,7 +18,6 @@ import jsplice.io.Variants;
 */
 public class AlgorithmAdministrator {
 	
-	public static HashMap<String,Cluster> quantityRelative;
 	Variants variantsBenTrain;
 	Variants variantsBenTest;
 	Variants variantsPathoTrain;
@@ -39,9 +38,6 @@ public class AlgorithmAdministrator {
 		// Filter
 //		Variants variantsPathogeneNonCry = Filter.extractCrypticVariants(variantsPathogene, modelStdAcc, modelStdDon, false);
 //		variantsPathogene = VariantFile.concat(Filter.filterActivatingVariants(variantsPathogene, modelStdAcc, true), Filter.filterActivatingVariants(variantsPathogene, modelStdDon, true));
-		
-		// find ISEs
-		quantityRelative = Model.findPattern(variantsPathogene, acceptor);
 		
 		String folder = "results/patternSep/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
 		crossValidate(variantsPathogene, variantsBenign, acceptor, folder);

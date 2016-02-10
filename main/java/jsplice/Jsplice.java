@@ -66,12 +66,12 @@ public class Jsplice {
 //			System.out.println(iterator.next().getChr());
 //		}
         vcfReader.close();
-    	
+        Log.writeToFile();
+		Log.close();
 		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
 			Log.writeToFile();
 			Log.close();
+			e.printStackTrace();
 		}
 	}
 }

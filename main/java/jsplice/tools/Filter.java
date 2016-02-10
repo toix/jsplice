@@ -22,7 +22,7 @@ public class Filter {
 	 * 
 	 */
 	public Filter() {
-		// TODO Auto-generated constructor stub
+		super();
 	}
 
 	/**
@@ -184,36 +184,25 @@ public class Filter {
 	 * Remove all variants that are not within a range and in the intron <br/>
 	 * 
 	 * @param variantsInRange
-	 * @param range
+	 * @param minRange
 	 *            relative range from the junction position
 	 * @return
 	 */
-	public static Variants extractVariantsInRelativeRange(Variants variants, int range) {
-		Variants variantsInRange = new Variants(variants);
+	public static Variants extractVariantsInRelativeRange(Variants variants, int minRange, int maxRange) {
+		Variants variantsInRange = new Variants();
 		int count = 0;
-		for (int i = 0; i < variantsInRange.size(); i++) {
-			Variant variant = variantsInRange.get(i);
+		for (int i = 0; i < variants.size(); i++) {
+			Variant variant = variants.get(i);
 			Sequence sequence = variant.getSequence();
 			int variantPosition = sequence.getPositionChange();
 			int junctionPosition = sequence.getPositionJunction();
-			int min, max;
-			if (sequence.isAcceptor()) {
-				min = junctionPosition - range;
-				max = junctionPosition - 1;
+			if (Math.abs(variantPosition - junctionPosition) >= minRange && Math.abs(variantPosition - junctionPosition) <= maxRange) {
+				variantsInRange.add(variants.get(i));
 			} else {
-				min = junctionPosition + 1;
-				max = junctionPosition + range;
-			}
-			// System.out.print("varPos: " + variantPosition + "...");
-			if (variantPosition < min || variantPosition > max) {
-				variantsInRange.remove(i);
-				i--;
 				count++;
-				// System.out.println("removed");
 			}
-			// System.out.println();
 		}
-		Log.add("Number of variants that are out of the relative analysis range: \t" + count, 3);
+		Log.add("Number of variants that are out of the relative analysis range:\t " + count, 3);
 		return variantsInRange;
 	}
 

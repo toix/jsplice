@@ -32,6 +32,7 @@ public class Model {
 	 * Number of DNA Bases (=4)
 	 */
 	public static final int numberOfBases = Functions.bases.length();
+	private static HashMap<String, Cluster> clusterHash;
 	/**
 	 * The probability of the bases at each position relative to the junction
 	 */
@@ -58,39 +59,6 @@ public class Model {
 	Sequences sequences;
 
 	/**
-	 * 
-	 */
-	public Model() {
-		// TODO Auto-generated constructor stub
-	}
-
-	//	/**
-	//	 * TODO make all functions static Constructor to filter non-cryptic change sequences
-	//	 * 
-	//	 * @param variantsP
-	//	 * @param intronExonJunction
-	//	 * @param flag
-	//	 */
-	//	private Sequences(VariantFile variantsP, boolean intronExonJunctionP, String flag) {
-	//		this.intronExonJunction = intronExonJunctionP;
-	//		this.variants = variantsP.filterVariants(intronExonJunction);
-	//		verifySequencesEquality(variants.getSequences());
-	//		Sequence firstSequence = variants.get(0).getSequence();
-	//		// this.sequenceLength = firstSequence.length();
-	//		this.junctionPosition = firstSequence.getJunctionPosition();
-	//		// sequence length
-	//		// int sequenceLengthVariants = variants.get(0).getSequence().length();
-	//		// if (sequenceLengthVariants < sequenceLength) {
-	//		// throw new IllegalArgumentException("The parameter sequenceLength (" + sequenceLength
-	//		// + ") has to be equal or smaller than the length of the seuquences of the variant(" + sequenceLengthVariants + ").");
-	//		// }
-	//		variants = VariantFile.extractNonCrypticVariants(variants, intronExonJunction);
-	//		this.sequences = shortenSequences(variants);
-	//		sequenceLength = this.sequences.get(0).length();
-	//		this.junctionPosition = sequences.get(0).getJunctionPosition();
-	//	}
-	
-		/**
 	 * Constructor without filters
 	 * @param variants
 	 *            {@link Variants} with corresponding {@link RefGene} and sequence
@@ -103,59 +71,61 @@ public class Model {
 		}
 		this.sequences = new Sequences(variantsP, acceptorP);
 		weightMatrix = calculateMatrix();
+		clusterHash = findPattern(variantsP, acceptorP);
 		this.filtered = false;
 	}
 
 	/**
-		 * Constructor with filters
-		 * @param variants
-		 * @param acceptor
-		 * @param filtered true -> create the change model
-		 */
-		public Model(Variants variantsP, Model modelStd, Model modelStdOtherSide, boolean acceptorP) {
-			if (variantsP.size() < 1) {
-				throw new IllegalArgumentException("The parameter contains no variants.");
-			}
-			Variants variants = Filter.filterVariantType(variantsP, acceptorP);
-			variants = Filter.extractCrypticVariants(variants, modelStd, modelStdOtherSide, acceptorP, false);
-	//		variants = VariantFile.filterActivatingVariants(this.variants, modelStd, true);
-			variants = Filter.filterNonACGT(variants);
-			sequences = new Sequences(variants, acceptorP);
-			weightMatrix = calculateMatrix();
-			this.filtered = true;
+	 * Constructor with filters
+	 * @param variants
+	 * @param acceptor
+	 * @param filtered true -> create the change model
+	 */
+	public Model(Variants variantsP, Model modelStd, Model modelStdOtherSide, boolean acceptorP) {
+		if (variantsP.size() < 1) {
+			throw new IllegalArgumentException("The parameter contains no variants.");
 		}
+		Variants variants = Filter.filterVariantType(variantsP, acceptorP);
+		variants = Filter.extractCrypticVariants(variants, modelStd, modelStdOtherSide, acceptorP, false);
+		//		variants = VariantFile.filterActivatingVariants(this.variants, modelStd, true);
+		variants = Filter.filterNonACGT(variants);
+		sequences = new Sequences(variants, acceptorP);
+		weightMatrix = calculateMatrix();
+		clusterHash = findPattern(variantsP, acceptorP);
+		this.filtered = true;
+	}
 
 	/**
-		 * Calculates the maximum intron length for the change matrix with sufficient variants per position
-		 * 
-		 * @param variants
-		 * @return The intron length for the change matrix
-		 */
-		private int calculateChangeIntronLength(Variants variants) {
-			// Extract all references of the Variants
-			ArrayList<String> allRef = Variants.extractAllRef(variants);
-			System.out.println(allRef);
-			int intronLength = variants.get(0).getSequence().getStringIntron().length();
-			int changeIntronLength = intronLength;
-	//		System.out.println("for: " + (junctionPosition > 0) + " && " + (changeIntronLength == intronLength));
-	//		System.out.println("junctionP: " + junctionPosition);
-			if (isAcceptor()) {
-				for (int i = sequences.getJunctionPosition(); i > 0 && changeIntronLength == intronLength; i--) {
-					// System.out.println(allRef.get(i-1).length());
-					if (allRef.get(i - 1).length() < 12) {
-						changeIntronLength = sequences.getJunctionPosition() - i;
-					}
-				}
-			} else {
-				for (int i = sequences.getJunctionPosition(); i < sequences.length() - 1 && changeIntronLength == intronLength; i++) {
-					if (allRef.get(i + 1).length() < 10) {
-						changeIntronLength = i - sequences.getJunctionPosition();
-					}
+	 * Calculates the maximum intron length for the change matrix with sufficient variants per position
+	 * 
+	 * @param variants
+	 * @return The intron length for the change matrix
+	 */
+	private int calculateChangeIntronLength(Variants variants) {
+		// Extract all references of the Variants
+		ArrayList<String> allRef = Variants.extractAllRef(variants);
+		System.out.println(allRef);
+		int intronLength = variants.get(0).getSequence().getStringIntron().length();
+		int changeIntronLength = intronLength;
+		//		System.out.println("for: " + (junctionPosition > 0) + " && " + (changeIntronLength == intronLength));
+		//		System.out.println("junctionP: " + junctionPosition);
+		if (isAcceptor()) {
+			for (int i = sequences.getJunctionPosition(); i > 0 && changeIntronLength == intronLength; i--) {
+				// System.out.println(allRef.get(i-1).length());
+				if (allRef.get(i - 1).length() < 12) {
+					changeIntronLength = sequences.getJunctionPosition() - i;
 				}
 			}
-			System.out.println("change intron length: " + changeIntronLength);
-			return changeIntronLength;
+		} else {
+			for (int i = sequences.getJunctionPosition(); i < sequences.length() - 1 && changeIntronLength == intronLength; i++) {
+				if (allRef.get(i + 1).length() < 10) {
+					changeIntronLength = i - sequences.getJunctionPosition();
+				}
+			}
 		}
+		System.out.println("change intron length: " + changeIntronLength);
+		return changeIntronLength;
+	}
 
 	/**
 	 * shorten and set sequences by the given sequence length
@@ -194,7 +164,7 @@ public class Model {
 				Sequence newSeq = new Sequence(sequence.getStringExtended(), sequence.getLengthExonExtended(),
 						sequenceLengthNew, exonLengthNew, variant);
 				shorterSequences.add(newSeq);
-	
+
 				// System.out.println("before: " + intronLengthBefore + "\t after: " + intronLenghtAfter);
 				// if(Math.random()>0.9){
 				// System.out.println("new seq: " + newSeq);
@@ -217,47 +187,47 @@ public class Model {
 	}
 
 	/**
-		 * Calculate probability and weigth matrix
-		 */
-		public double[][] calculateMatrix() {
-			// // calculate uncertainty
-			// uncertainty = Functions.getDoubleArrayWithZeroes(sequenceLength);
-			// for (int l = 0; l < sequenceLength; l++) {
-			// for (int b = 0; b < numberOfBases; b++) {
-			// if(probability[l][b] != 0){
-			// uncertainty[l] += - Math.log(probability[l][b]) / Math.log(2);
-			// }
-			// }
-			// }
-			// informationContent = new double[sequenceLength];
-			// calculate probability
-			probability = Functions.getFrequencies(sequences.getSequences(), true);
-			// calculate error and weight matrix
-			double[][] weightMatrix = new double[sequences.length()][numberOfBases];
-			for (int l = 0; l < sequences.length(); l++) {
-				// informationContent[l] = 2 - (uncertainty[l] + error);
-				double error = (4.0 - 1) / (2 * Math.log(2) * sequences.size());
-				for (int b = 0; b < numberOfBases; b++) {
-					if (probability[l][b] == 0) {
-						probability[l][b] = 1.0 / (sequences.size() * 2);
-					}
-					weightMatrix[l][b] = 2.0 - (-Math.log(probability[l][b]) / Math.log(2) + error);
+	 * Calculate probability and weigth matrix
+	 */
+	public double[][] calculateMatrix() {
+		// // calculate uncertainty
+		// uncertainty = Functions.getDoubleArrayWithZeroes(sequenceLength);
+		// for (int l = 0; l < sequenceLength; l++) {
+		// for (int b = 0; b < numberOfBases; b++) {
+		// if(probability[l][b] != 0){
+		// uncertainty[l] += - Math.log(probability[l][b]) / Math.log(2);
+		// }
+		// }
+		// }
+		// informationContent = new double[sequenceLength];
+		// calculate probability
+		probability = Functions.getFrequencies(sequences.getSequences(), true);
+		// calculate error and weight matrix
+		double[][] weightMatrix = new double[sequences.length()][numberOfBases];
+		for (int l = 0; l < sequences.length(); l++) {
+			// informationContent[l] = 2 - (uncertainty[l] + error);
+			double error = (4.0 - 1) / (2 * Math.log(2) * sequences.size());
+			for (int b = 0; b < numberOfBases; b++) {
+				if (probability[l][b] == 0) {
+					probability[l][b] = 1.0 / (sequences.size() * 2);
 				}
+				weightMatrix[l][b] = 2.0 - (-Math.log(probability[l][b]) / Math.log(2) + error);
 			}
-			return weightMatrix;
-		
-			// calculate individual information of the natural splice sites
-			// individualInformation = new double[sequences.size()][sequences.getSequenceLength()];
-			// double[] sequenceEntropy = new double[sequences.size()];
-			// for (int i = 0; i < sequences.size(); i++) {
-			// individualInformation[i] = getIndividualInformation(sequences.get(i), getJunctionPosition(), true);
-			// sequenceEntropy[i] = Functions.sum(individualInformation[i]);
-			// }
-			// Arrays.sort(sequenceEntropy);
-			// System.out.println("First: " + sequenceEntropy[0] + "\tLast: " + sequenceEntropy[sequenceEntropy.length-1]);
 		}
+		return weightMatrix;
 
-	
+		// calculate individual information of the natural splice sites
+		// individualInformation = new double[sequences.size()][sequences.getSequenceLength()];
+		// double[] sequenceEntropy = new double[sequences.size()];
+		// for (int i = 0; i < sequences.size(); i++) {
+		// individualInformation[i] = getIndividualInformation(sequences.get(i), getJunctionPosition(), true);
+		// sequenceEntropy[i] = Functions.sum(individualInformation[i]);
+		// }
+		// Arrays.sort(sequenceEntropy);
+		// System.out.println("First: " + sequenceEntropy[0] + "\tLast: " + sequenceEntropy[sequenceEntropy.length-1]);
+	}
+
+
 
 	// public void runOld() {
 	// // calculate probability
@@ -300,7 +270,7 @@ public class Model {
 	// }
 	// }
 	// }
-	
+
 	public void calculateCorrelation() {
 		// calculate correlation
 		correlation = new double[sequences.length()][sequences.length()];
@@ -353,7 +323,7 @@ public class Model {
 				// System.out.println(b1 + "," + b2 + ":\t " + correlationBases[b1][b2]);
 			}
 		}
-	
+
 		// System.out.println("l1: " + location1 + "\t l2: " + location2);
 		for (int j = 0; j < sequences.size(); j++) {
 			char base1 = sequences.get(j).charAt(location1);
@@ -382,70 +352,70 @@ public class Model {
 	}
 
 	/**
-		 * Calculates the individual information for a sequence with a certain junction position
-		 * @param sequenceP
-		 *            A {@link Sequence}
-		 * @param junction
-		 *            The position of the potential splice site on the pattern
-		 * @param reference
-		 *            false -> the alternate sequence is used
-		 * @param limitLength true -> lengthIntronCryptic in Config defines the maximum intron length
-		 * @return A summand for each position
-		 */
-		public Result getIndividualInformation(Sequence sequenceP, int junction, boolean reference, boolean limitLength) {
-//			Log.add("Calculate individual information for the " + (reference ? "reference" : "alternate") + " of "
-//					+ (sequenceP.isAcceptor() ? "an acceptor" : "a donor") + " sequence with " + (isAcceptor() ? "accptor" : "donor")
-//					+ " model and " + (limitLength ? "limited" : "unlimited") + " length at position " + junction + ".", 2);
-			if (sequenceP.length() < sequences.length()) {
-				throw new IllegalArgumentException("The length of the pattern Sequence (" + sequenceP.length()
-						+ ") has to be equal or bigger than the length of this instance (" + sequences.length() + ").");
-			}
-			int min = Config.getMinAnalysisPosition(sequenceP.isAcceptor(), isAcceptor());
-			int max = Config.getMaxAnalysisPosition(sequenceP.isAcceptor(), isAcceptor());
-	//		System.out.println("II min: " + min + "\t max: " + max);
-	//		System.out.println("seq: " + sequenceP.isAcceptor() + "\t model: " + isAcceptor());
-			if (junction < min || junction > max) {
-				throw new IllegalArgumentException("The position (=" + junction + ") has to be a number between " + min + " and " + max);
-			}
-	//		System.out.println("acc seq: " + sequenceP.isAcceptor() + "\t acc model: " + isAcceptor());
-	//		System.out.println("The junction (=" + junction + ") is between " + min + " and " + max);
-			int intronLengthMax = Config.lengthIntronCryptic;
-			int patternStart = junction - sequences.getJunctionPosition();
-			int matrixStart = 0;
-			int matrixEnd = sequences.length();
-			// limit intron length?
-			if (limitLength && isAcceptor() && patternStart < junction - intronLengthMax) {
-				patternStart = junction - intronLengthMax;
-				matrixStart = sequences.getJunctionPosition() - intronLengthMax;
-				matrixEnd = matrixStart + Config.getLengthModelExon() + intronLengthMax;
-			} else if (limitLength && !isAcceptor() && matrixEnd > Config.getLengthModelExon() + intronLengthMax) {
-				matrixEnd = matrixStart + Config.getLengthModelExon() + intronLengthMax;
-			}
-//			System.out.println("junction: " + junction);
-//			System.out.println("getJunctionPosition(): " + sequences.getJunctionPosition());
-//			System.out.println("patternStart: " + patternStart);
-//			System.out.println("matrixStart: " + matrixStart);
-//			System.out.println("matrixEnd: " + matrixEnd);
-			double[] individualInformation = Functions.getInitializedDoubleArray(sequences.length());
-			int changePos = sequenceP.getPositionChange();
-			for (int locM = matrixStart, locP = patternStart; locM < matrixEnd; locM++, locP++) {
-	//			try {
-				int baseNumber = Functions.mapNumber.get(sequenceP.charAt(locP));
-				// is alternate sequence and change position?
-				if (!reference && locP == changePos) {
-					char alt = sequenceP.getAlt().charAt(0);
-					baseNumber = Functions.mapNumber.get(alt);
-				}
-				individualInformation[locM] = weightMatrix[locM][baseNumber];
-	//			} catch (StringIndexOutOfBoundsException e) {
-	//				System.out.println(e.getMessage() + "\nl1:" + l1 + "\t l2: " + l2 + "\t patternStart: " + patternStart + "\t seqLen: " + sequenceLength);
-	//				System.out.println("seq acc: " + sequenceP.isAcceptor() + "\t model acc: " + isAcceptor());
-	//				System.out.println("exLen: " + sequenceP.lengthExtended() + "\t len: " + sequenceP.length());
-	//			}
-			}
-//			Log.add("Information: " + Functions.sum(individualInformation), 2);
-			return new Result(individualInformation, junction, sequenceP);
+	 * Calculates the individual information for a sequence with a certain junction position
+	 * @param sequenceP
+	 *            A {@link Sequence}
+	 * @param junction
+	 *            The position of the potential splice site on the pattern
+	 * @param reference
+	 *            false -> the alternate sequence is used
+	 * @param limitLength true -> lengthIntronCryptic in Config defines the maximum intron length
+	 * @return A summand for each position
+	 */
+	public Result getIndividualInformation(Sequence sequenceP, int junction, boolean reference, boolean limitLength) {
+		//			Log.add("Calculate individual information for the " + (reference ? "reference" : "alternate") + " of "
+		//					+ (sequenceP.isAcceptor() ? "an acceptor" : "a donor") + " sequence with " + (isAcceptor() ? "accptor" : "donor")
+		//					+ " model and " + (limitLength ? "limited" : "unlimited") + " length at position " + junction + ".", 2);
+		if (sequenceP.length() < sequences.length()) {
+			throw new IllegalArgumentException("The length of the pattern Sequence (" + sequenceP.length()
+					+ ") has to be equal or bigger than the length of this instance (" + sequences.length() + ").");
 		}
+		int min = Config.getMinAnalysisPosition(sequenceP.isAcceptor(), isAcceptor());
+		int max = Config.getMaxAnalysisPosition(sequenceP.isAcceptor(), isAcceptor());
+		//		System.out.println("II min: " + min + "\t max: " + max);
+		//		System.out.println("seq: " + sequenceP.isAcceptor() + "\t model: " + isAcceptor());
+		if (junction < min || junction > max) {
+			throw new IllegalArgumentException("The position (=" + junction + ") has to be a number between " + min + " and " + max);
+		}
+		//		System.out.println("acc seq: " + sequenceP.isAcceptor() + "\t acc model: " + isAcceptor());
+		//		System.out.println("The junction (=" + junction + ") is between " + min + " and " + max);
+		int intronLengthMax = Config.lengthIntronCryptic;
+		int patternStart = junction - sequences.getJunctionPosition();
+		int matrixStart = 0;
+		int matrixEnd = sequences.length();
+		// limit intron length?
+		if (limitLength && isAcceptor() && patternStart < junction - intronLengthMax) {
+			patternStart = junction - intronLengthMax;
+			matrixStart = sequences.getJunctionPosition() - intronLengthMax;
+			matrixEnd = matrixStart + Config.getLengthModelExon() + intronLengthMax;
+		} else if (limitLength && !isAcceptor() && matrixEnd > Config.getLengthModelExon() + intronLengthMax) {
+			matrixEnd = matrixStart + Config.getLengthModelExon() + intronLengthMax;
+		}
+		//			System.out.println("junction: " + junction);
+		//			System.out.println("getJunctionPosition(): " + sequences.getJunctionPosition());
+		//			System.out.println("patternStart: " + patternStart);
+		//			System.out.println("matrixStart: " + matrixStart);
+		//			System.out.println("matrixEnd: " + matrixEnd);
+		double[] individualInformation = Functions.getInitializedDoubleArray(sequences.length());
+		int changePos = sequenceP.getPositionChange();
+		for (int locM = matrixStart, locP = patternStart; locM < matrixEnd; locM++, locP++) {
+			//			try {
+			int baseNumber = Functions.mapNumber.get(sequenceP.charAt(locP));
+			// is alternate sequence and change position?
+			if (!reference && locP == changePos) {
+				char alt = sequenceP.getAlt().charAt(0);
+				baseNumber = Functions.mapNumber.get(alt);
+			}
+			individualInformation[locM] = weightMatrix[locM][baseNumber];
+			//			} catch (StringIndexOutOfBoundsException e) {
+			//				System.out.println(e.getMessage() + "\nl1:" + l1 + "\t l2: " + l2 + "\t patternStart: " + patternStart + "\t seqLen: " + sequenceLength);
+			//				System.out.println("seq acc: " + sequenceP.isAcceptor() + "\t model acc: " + isAcceptor());
+			//				System.out.println("exLen: " + sequenceP.lengthExtended() + "\t len: " + sequenceP.length());
+			//			}
+		}
+		//			Log.add("Information: " + Functions.sum(individualInformation), 2);
+		return new Result(individualInformation, junction, sequenceP);
+	}
 
 	/**
 	 * Calculates the individual information for a sequence with the natural junction position
@@ -461,7 +431,7 @@ public class Model {
 			Sequence sequence = sequences.get(s);
 			int junction = sequence.getPositionJunction();
 			if(cluster){
-				indInfo[s] = sequence.getMaxPatternQty(AlgorithmAdministrator.quantityRelative, reference) + getIndividualInformation(sequence, junction, reference, true).getTotalInformation();
+				indInfo[s] = sequence.getMaxPatternQty(Model.clusterHash, reference) + getIndividualInformation(sequence, junction, reference, true).getTotalInformation();
 			} else {
 				indInfo[s] = getIndividualInformation(sequence, junction, reference, false).getTotalInformation();
 			}
@@ -525,7 +495,7 @@ public class Model {
 	public int getJunctionPosition() {
 		return sequences.getJunctionPosition();
 	}
-	
+
 	public Sequences getSequences() {
 		return sequences;
 	}
@@ -547,11 +517,12 @@ public class Model {
 	static HashMap<String,Cluster> findPattern(Variants variants, boolean acceptor) {
 		int lengthIntronMax = Config.lengthIntronPatternMax;
 		variants = Filter.filterVariantType(variants, acceptor);
-		variants = Filter.extractVariantsInRange(variants, -20, -4);
+		variants = Filter.extractVariantsInRelativeRange(variants, 4, 20);
 		variants = Filter.deleteDuplicateJunctions(variants);
 		HashMap<String, Integer> quantityAbs = new HashMap<String, Integer>();
 		HashMap<String, Integer> quantityCondition = new HashMap<String, Integer>();
 		int numOfPattern[] = Functions.getInitializedIntArray(lengthIntronMax + 1);
+		Log.add("Creating cluster with " + variants.size() + " variants.", 3);
 		for (int i = 0; i < variants.size(); i++) {
 			Sequence sequence = variants.get(i).getSequence();
 			int posChangeRel = sequence.getPositionChangeRelative();
@@ -584,72 +555,114 @@ public class Model {
 			}
 		}
 
-		// quantityAbs / quantityCondition
-		// TODO rename
-		HashMap<String, Pattern> quantityRelative = Model.relativeQuantity(quantityAbs, quantityCondition);
+		HashMap<String, Pattern> pattern = Model.createPattern(quantityAbs, quantityCondition);
 
-		// create cluster for the best pattern and add all sub-pattern
-		double limit = 0.9;
+		ArrayList<Cluster> cluster = createCluster(pattern);
+
+		cluster = mergeCluster(cluster);
+
+		cluster = countClusterInSequences(cluster, variants);
+		
+		HashMap<String, Cluster> clusterHash = createHash(cluster);
+		
+		Log.add(cluster+"", 2);
+		Log.writeToFile();
+		return clusterHash;
+	}
+
+	/**
+	 * Create hash to cluster by its pattern
+	 * @param cluster
+	 * @return
+	 */
+	private static HashMap<String, Cluster> createHash(ArrayList<Cluster> cluster) {
 		HashMap<String, Cluster> clusterHash = new HashMap<String, Cluster>();
-		ArrayList<Cluster> cluster = new ArrayList<Cluster>();
-		Pattern patternBest;
-		do {
-			patternBest = findHighestPattern(quantityRelative);
-			// add similar pattern to cluster
-			if (patternBest.getQuantityRelative() > limit) {
-				Cluster clusterNew = new Cluster(patternBest);
-				cluster.add(clusterNew);
-				quantityRelative.remove(patternBest);
-				Iterator<Entry<String, Pattern>> patternIt = quantityRelative.entrySet().iterator();
-				while (patternIt.hasNext()) {
-					Pattern pattern = patternIt.next().getValue();
-					if (patternBest.contains(pattern)) {
-						clusterNew.addSub(pattern);
-						double percentage = (double) pattern.quantityAbs / patternBest.quantityAbs;
-						if (percentage > 0.5) {
-							patternIt.remove();
-						} else {
-							pattern.quantityAbs -= patternBest.quantityAbs;
-						}
-					}
-				}
-			}
-		} while (patternBest.getQuantityRelative() > limit);
-		// add all cluster as subset of the more important cluster
-		for (int i = 0; i < cluster.size(); i++) {
-			String patternMain = cluster.get(i).getPattern();
-			for (int j = i+1; j < cluster.size();) {
-				//  if subset cluster contains the substring of the important cluster
-				if (i != j && cluster.get(j).getPattern().contains(patternMain)) {
-					cluster.get(i).add(cluster.get(j));
-					cluster.remove(j);
-				} else {
-					j++;
-				}
-			}
-		}
 		for (int c = 0; c < cluster.size(); c++) {
-			// add only the best sequence to each cluster
-			cluster.get(c).sortPattern();
-			String pattern = cluster.get(c).getPattern();
-			for (int v = 0; v < variants.size(); v++) {
-				int posChange = variants.get(v).getSequence().getPositionChange();
-				int min = posChange - lengthIntronMax + 1;
-				int max = posChange + lengthIntronMax - 1;
-				String sequence = variants.get(v).getSequence().substring(min, max);
-				if (sequence.contains(pattern)) {
-					cluster.get(c).addQuantity(sequence);
-				}
-			}
-			// create hash to cluster by its pattern
 			for (int p = 0; p < cluster.get(c).size(); p++) {
 				String key = cluster.get(c).getPattern(p).pattern;
 				clusterHash.put(key, cluster.get(c));
 			}
 		}
-		Log.add(cluster+"", 2);
-		Log.writeToFile();
 		return clusterHash;
+	}
+
+	/**
+	 * Count only the longest pattern of every cluster that the sequences contain
+	 * @param cluster
+	 * @param variants
+	 * @return
+	 */
+	private static ArrayList<Cluster> countClusterInSequences(ArrayList<Cluster> cluster, Variants variants) {
+		int lengthIntronMax = Config.lengthIntronPatternMax;
+		for (int c = 0; c < cluster.size(); c++) {
+			cluster.get(c).sortPattern();
+			String patternCluster = cluster.get(c).getPattern();
+			for (int v = 0; v < variants.size(); v++) {
+				int posChange = variants.get(v).getSequence().getPositionChange();
+				int min = posChange - lengthIntronMax + 1;
+				int max = posChange + lengthIntronMax - 1;
+				String sequence = variants.get(v).getSequence().substring(min, max);
+				if (sequence.contains(patternCluster)) {
+					cluster.get(c).addQuantity(sequence);
+				}
+			}
+		}
+		return cluster;
+	}
+
+	/**
+	 * add all cluster as subset of the more important cluster <br> 
+	 * if subset cluster contains the substring of the important cluster
+	 * @param clusterP
+	 * @return
+	 */
+	private static ArrayList<Cluster> mergeCluster(ArrayList<Cluster> clusterP) {
+		for (int i = 0; i < clusterP.size(); i++) {
+			String patternMain = clusterP.get(i).getPattern();
+			for (int j = i+1; j < clusterP.size();) {
+				//  
+				if (i != j && clusterP.get(j).getPattern().contains(patternMain)) {
+					clusterP.get(i).add(clusterP.get(j));
+					clusterP.remove(j);
+				} else {
+					j++;
+				}
+			}
+		}
+		return clusterP;
+	}
+
+	/**
+	 * Create cluster for the best pattern and add all sub-pattern containing the cluster pattern
+	 * @param patternP
+	 * @return 
+	 */
+	private static ArrayList<Cluster> createCluster(HashMap<String, Pattern> patternP) {
+		double limit = 0.9;
+		ArrayList<Cluster> cluster = new ArrayList<Cluster>();
+		Pattern patternBest;
+		do {
+			patternBest = findHighestPattern(patternP);
+			if (patternBest.getQuantityRelative() > limit) {
+				Cluster clusterNew = new Cluster(patternBest);
+				cluster.add(clusterNew);
+				patternP.remove(patternBest);
+				Iterator<Entry<String, Pattern>> patternIt = patternP.entrySet().iterator();
+				while (patternIt.hasNext()) {
+					Pattern patternCurrent = patternIt.next().getValue();
+					if (patternBest.contains(patternCurrent)) {
+						clusterNew.addSub(patternCurrent);
+						double percentage = (double) patternCurrent.quantityAbs / patternBest.quantityAbs;
+						if (percentage > 0.5) {
+							patternIt.remove();
+						} else {
+							patternCurrent.quantityAbs -= patternBest.quantityAbs;
+						}
+					}
+				}
+			}
+		} while (patternBest.getQuantityRelative() > limit);
+		return cluster;
 	}
 
 	/**
@@ -673,25 +686,25 @@ public class Model {
 	}
 
 	/**
-	 * TODO unequal results for same quantities
-		 * @param quantityAbsolute
-		 * @param quantityCondition
-		 * @return 
-		 */
-		public static HashMap<String, Pattern> relativeQuantity(HashMap<String, Integer> quantityAbsolute, HashMap<String,Integer> quantityCondition) {
-			HashMap<String, Pattern> pattern = new HashMap<String, Pattern>();
-			Iterator<Entry<String, Integer>> patternIt = quantityAbsolute.entrySet().iterator();
-			while (patternIt.hasNext()) {
-				Entry<String, Integer> entry = patternIt.next();
-				String patternKey = entry.getKey();
-			    int quantityAbs = entry.getValue();
-			    int quantityCon = 0;
-			    if (quantityCondition.containsKey(patternKey)) {
-					quantityCon = quantityCondition.get(patternKey);
-				}
-			    Pattern patternNew = new Pattern(patternKey, quantityAbs, quantityCon);
-		    	pattern.put(patternKey, patternNew);
+	 * Create pattern containing the quantities
+	 * @param quantityAbsolute
+	 * @param quantityCondition
+	 * @return 
+	 */
+	public static HashMap<String, Pattern> createPattern(HashMap<String, Integer> quantityAbsolute, HashMap<String,Integer> quantityCondition) {
+		HashMap<String, Pattern> pattern = new HashMap<String, Pattern>();
+		Iterator<Entry<String, Integer>> patternIt = quantityAbsolute.entrySet().iterator();
+		while (patternIt.hasNext()) {
+			Entry<String, Integer> entry = patternIt.next();
+			String patternKey = entry.getKey();
+			int quantityAbs = entry.getValue();
+			int quantityCon = 0;
+			if (quantityCondition.containsKey(patternKey)) {
+				quantityCon = quantityCondition.get(patternKey);
 			}
-			return pattern;
+			Pattern patternNew = new Pattern(patternKey, quantityAbs, quantityCon);
+			pattern.put(patternKey, patternNew);
 		}
+		return pattern;
+	}
 }
