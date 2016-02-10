@@ -118,12 +118,11 @@ public class Log {
 			}
 			if (fileExists) {
 				fWriter.write(title);
-				fWriter.append("\n");
 				// write variants lines to file
 				for (int i=0; i < logEntries.size(); i++) {
 					if (entryPriorities.get(i) >= fileLogLevel) {
-						fWriter.write("[" + entryPriorities.get(i) + "] " + logEntries.get(i));
 						fWriter.append("\n");
+						fWriter.write("[" + entryPriorities.get(i) + "] " + logEntries.get(i));
 					}
 				}
 			} else

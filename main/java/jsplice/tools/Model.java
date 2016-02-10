@@ -433,7 +433,7 @@ public class Model {
 			Sequence sequence = sequences.get(s);
 			int junction = sequence.getPositionJunction();
 			if(cluster){
-				indInfo[s] = sequence.getMaxPatternQty(Model.clusterHash, reference) + getIndividualInformation(sequence, junction, reference, true).getTotalInformation();
+				indInfo[s] = sequence.getMaxPatternQty(Model.clusterHash, reference);
 			} else {
 				indInfo[s] = getIndividualInformation(sequence, junction, reference, false).getTotalInformation();
 			}
@@ -518,8 +518,9 @@ public class Model {
 	 */
 	static HashMap<String,Cluster> findPattern(Variants variantsP, boolean acceptorP) {
 		int lengthIntronMax = Config.lengthIntronPatternMax;
+		int distanceJunctionMax = 3;
 		variantsP = Filter.filterVariantType(variantsP, acceptorP);
-		variantsP = Filter.extractVariantsInRelativeRange(variantsP, 4, 20);
+		variantsP = Filter.extractVariantsInRelativeRange(variantsP, distanceJunctionMax+1, 20);
 		variantsP = Filter.deleteDuplicateJunctions(variantsP);
 		HashMap<String, Integer> quantityAbs = new HashMap<String, Integer>();
 		HashMap<String, Integer> quantityCondition = new HashMap<String, Integer>();
@@ -534,7 +535,7 @@ public class Model {
 					int from = posChangeAbs + shift - length + 1;
 					int to = posChangeAbs + shift;
 					int junction = sequence.getPositionJunction();
-					if (Math.abs(from - junction) > 3	&& Math.abs(to - junction) > 3) {
+					if (Math.abs(from - junction) > distanceJunctionMax	&& Math.abs(to - junction) > distanceJunctionMax) {
 						String patternRef = sequence.substring(from, to + 1);
 						if (!quantityAbs.containsKey(patternRef)) {
 							quantityAbs.put(patternRef, 1);
@@ -564,71 +565,30 @@ public class Model {
 		
 		HashMap<String, Cluster> clusterHash = createHash(cluster);
 		
-		Log.add(cluster+"", 2);
-		Log.writeToFile();
 		return clusterHash;
 	}
 
 	/**
-	 * Create hash to cluster by its pattern
-	 * @param cluster
-	 * @return
+	 * Create pattern containing the quantities
+	 * @param quantityAbsolute
+	 * @param quantityCondition
+	 * @return 
 	 */
-	private static HashMap<String, Cluster> createHash(ArrayList<Cluster> cluster) {
-		HashMap<String, Cluster> clusterHash = new HashMap<String, Cluster>();
-		for (int c = 0; c < cluster.size(); c++) {
-			for (int p = 0; p < cluster.get(c).size(); p++) {
-				String key = cluster.get(c).getPattern(p).pattern;
-				clusterHash.put(key, cluster.get(c));
+	private static ArrayList<Pattern> createPattern(HashMap<String, Integer> quantityAbsolute, HashMap<String,Integer> quantityCondition) {
+		ArrayList<Pattern> pattern = new ArrayList<Pattern>(quantityAbsolute.size());
+		Iterator<Entry<String, Integer>> patternIt = quantityAbsolute.entrySet().iterator();
+		while (patternIt.hasNext()) {
+			Entry<String, Integer> entry = patternIt.next();
+			String patternKey = entry.getKey();
+			int quantityAbs = entry.getValue();
+			int quantityCon = 0;
+			if (quantityCondition.containsKey(patternKey)) {
+				quantityCon = quantityCondition.get(patternKey);
 			}
+			Pattern patternNew = new Pattern(patternKey, quantityAbs, quantityCon);
+			pattern.add(patternNew);
 		}
-		return clusterHash;
-	}
-
-	/**
-	 * Count only the longest pattern of every cluster that the sequences contain
-	 * @param cluster
-	 * @param variants
-	 * @return
-	 */
-	private static ArrayList<Cluster> countClusterInSequences(ArrayList<Cluster> cluster, Variants variants) {
-		int lengthIntronMax = Config.lengthIntronPatternMax;
-		for (int c = 0; c < cluster.size(); c++) {
-			cluster.get(c).sortPattern();
-			String patternCluster = cluster.get(c).getPattern();
-			for (int v = 0; v < variants.size(); v++) {
-				int posChange = variants.get(v).getSequence().getPositionChange();
-				int min = posChange - lengthIntronMax + 1;
-				int max = posChange + lengthIntronMax - 1;
-				String sequence = variants.get(v).getSequence().substring(min, max);
-				if (sequence.contains(patternCluster)) {
-					cluster.get(c).addQuantity(sequence);
-				}
-			}
-		}
-		return cluster;
-	}
-
-	/**
-	 * add all cluster as subset of the more important cluster <br> 
-	 * if subset cluster contains the substring of the important cluster
-	 * @param clusterP
-	 * @return
-	 */
-	private static ArrayList<Cluster> mergeCluster(ArrayList<Cluster> clusterP) {
-		for (int i = 0; i < clusterP.size(); i++) {
-			String patternMain = clusterP.get(i).getPattern();
-			for (int j = i+1; j < clusterP.size();) {
-				//  
-				if (i != j && clusterP.get(j).getPattern().contains(patternMain)) {
-					clusterP.get(i).add(clusterP.get(j));
-					clusterP.remove(j);
-				} else {
-					j++;
-				}
-			}
-		}
-		return clusterP;
+		return pattern;
 	}
 
 	/**
@@ -664,6 +624,52 @@ public class Model {
 	}
 
 	/**
+	 * add all cluster as subset of the more important cluster <br> 
+	 * if subset cluster contains the substring of the important cluster
+	 * @param clusterP
+	 * @return
+	 */
+	private static ArrayList<Cluster> mergeCluster(ArrayList<Cluster> clusterP) {
+		for (int i = 0; i < clusterP.size(); i++) {
+			String patternMain = clusterP.get(i).getPattern();
+			for (int j = i+1; j < clusterP.size();) {
+				//  
+				if (i != j && clusterP.get(j).getPattern().contains(patternMain)) {
+					clusterP.get(i).add(clusterP.get(j));
+					clusterP.remove(j);
+				} else {
+					j++;
+				}
+			}
+		}
+		return clusterP;
+	}
+
+	/**
+	 * Count only the longest pattern of every cluster that the sequences contain
+	 * @param cluster
+	 * @param variants
+	 * @return
+	 */
+	private static ArrayList<Cluster> countClusterInSequences(ArrayList<Cluster> cluster, Variants variants) {
+		int lengthIntronMax = Config.lengthIntronPatternMax;
+		for (int c = 0; c < cluster.size(); c++) {
+			cluster.get(c).sortPattern();
+			String patternCluster = cluster.get(c).getPattern();
+			for (int v = 0; v < variants.size(); v++) {
+				int posChange = variants.get(v).getSequence().getPositionChange();
+				int min = posChange - lengthIntronMax + 1;
+				int max = posChange + lengthIntronMax - 1;
+				String sequence = variants.get(v).getSequence().substring(min, max);
+				if (sequence.contains(patternCluster)) {
+					cluster.get(c).addQuantity(sequence);
+				}
+			}
+		}
+		return cluster;
+	}
+
+	/**
 	 * @param patternP
 	 * @return
 	 */
@@ -683,25 +689,18 @@ public class Model {
 	}
 
 	/**
-	 * Create pattern containing the quantities
-	 * @param quantityAbsolute
-	 * @param quantityCondition
-	 * @return 
+	 * Create hash to cluster by its pattern
+	 * @param cluster
+	 * @return
 	 */
-	public static ArrayList<Pattern> createPattern(HashMap<String, Integer> quantityAbsolute, HashMap<String,Integer> quantityCondition) {
-		ArrayList<Pattern> pattern = new ArrayList<Pattern>(quantityAbsolute.size());
-		Iterator<Entry<String, Integer>> patternIt = quantityAbsolute.entrySet().iterator();
-		while (patternIt.hasNext()) {
-			Entry<String, Integer> entry = patternIt.next();
-			String patternKey = entry.getKey();
-			int quantityAbs = entry.getValue();
-			int quantityCon = 0;
-			if (quantityCondition.containsKey(patternKey)) {
-				quantityCon = quantityCondition.get(patternKey);
+	private static HashMap<String, Cluster> createHash(ArrayList<Cluster> cluster) {
+		HashMap<String, Cluster> clusterHash = new HashMap<String, Cluster>();
+		for (int c = 0; c < cluster.size(); c++) {
+			for (int p = 0; p < cluster.get(c).size(); p++) {
+				String key = cluster.get(c).getPattern(p).pattern;
+				clusterHash.put(key, cluster.get(c));
 			}
-			Pattern patternNew = new Pattern(patternKey, quantityAbs, quantityCon);
-			pattern.add(patternNew);
 		}
-		return pattern;
+		return clusterHash;
 	}
 }

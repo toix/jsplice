@@ -226,9 +226,10 @@ public class AlgorithmAdministrator {
 	 */
 	private void crossValidate(Variants variantsPathogene, Variants variantsBenign, boolean acceptor, String folder) throws UnexpectedException {
 		for (int i = 1; i < 301; i++) {
-			System.out.println("\n\n - - - - - - - - - - - - - - - - - - - - - \n");
+			Log.add("\n - - - - - - - - - - - - - - - - - - - - - ", 3);
 			// separate training and test variants
 			Log.add("cross validation run nr. " + i, 3);
+			Log.writeToFile();
 			ArrayList<Variants> separatedVariants;
 			separatedVariants = separateData(variantsBenign);
 			variantsBenTrain = separatedVariants.get(0);
@@ -242,22 +243,21 @@ public class AlgorithmAdministrator {
 			// trainVariantsBenign = trainVariantsBenign.filterNonACGT();
 			// Sequences standardModel = new Sequences(trainVariantsBenign, intronExon, false);
 			// standard model pathogene
-			Log.add("\n - - - pathogene standard model - - - ", 3);
+			Log.add(" - - - pathogene standard model - - - ", 3);
 			Model modelStdAcc = new Model(variantsPathoTrain, acceptor);
 			Log.add("Number of pathogene training sequences for acceptor site: " + modelStdAcc.getSequences().size(), 3);
-			Functions.writeToFile(modelStdAcc.matrixToString("acceptor matrix", modelStdAcc.getJunctionPosition()),
-					folder + "accMatrix.tsv");
+			Functions.writeToFile(modelStdAcc.matrixToString("acceptor matrix", modelStdAcc.getJunctionPosition()), folder
+					+ "accMatrix.tsv");
 			Model modelStdDon = new Model(variantsPathoTrain, !acceptor);
 			Log.add("Number of pathogene training sequences for donor site: " + modelStdDon.getSequences().size(), 3);
-			Functions.writeToFile(modelStdAcc.matrixToString("donor matrix", modelStdDon.getJunctionPosition()),
-					folder + "donMatrix.tsv");
+			Functions.writeToFile(modelStdAcc.matrixToString("donor matrix", modelStdDon.getJunctionPosition()), folder + "donMatrix.tsv");
 			// create pathogene test sequences
-			Log.add("\n - - - pathogene test variants - - - ", 3);
+			Log.add(" - - - pathogene test variants - - - ", 3);
 			// variantsPathoTest = VariantFile.extractCrypticVariants(variantsPathoTest, modelStdAcc, modelStdDon, false);
 			Sequences sequencesPathoTestAcc = new Sequences(variantsPathoTest, acceptor);
 			Log.add("Number of pathogene test sequences for acceptor site: " + sequencesPathoTestAcc.size(), 3);
 			// create benign test sequences
-			Log.add("\n - - - benign test variants - - - ", 3);
+			Log.add(" - - - benign test variants - - - ", 3);
 			Sequences sequencesBenTestAcc = new Sequences(variantsBenTest, acceptor);
 			
 			// write benign results to file

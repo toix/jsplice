@@ -224,7 +224,6 @@ public class Filter {
 		if (variantsDon.size() > 0) {
 			variantsDon = extractCrypticVariants(variantsDon, modelAcc, modelDon, false, returnCryptic);
 		}
-		Log.writeToFile();
 		return Variants.concat(variantsAcc, variantsDon);
 	}
 
