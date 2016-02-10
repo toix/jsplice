@@ -58,4 +58,12 @@ public class Pattern implements Comparable<Pattern>{
 	public double getQuantityRelative() {
 		return (quantityAbs - 1) / (quantityCon + 1);
 	}
+
+	/**
+	 * @param patternP
+	 * @return
+	 */
+	public boolean contains(Pattern patternP) {
+		return pattern.contains(patternP.pattern);
+	}
 }

@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.regex.Pattern;
 
-import old.Gene;
 import jsplice.data.Sequence;
 import jsplice.data.Variant;
 
@@ -287,28 +286,6 @@ public class Functions {
 		return probability;
 	}
 
-	/**
-	 * Extracts the sequences from the Variants or Genes
-	 * @param <E> Gene or Variant
-	 * @param variants Array of variants
-	 * @return Sequences of all variants
-	 */
-	public static <E> String[] getSequences(ArrayList<E> variants) {
-		String[] sequences = new String[variants.size()];
-		boolean isVariant = variants.get(0) instanceof Variant;
-		boolean isGene = variants.get(0) instanceof Gene;
-		for (int i = 0; i < variants.size(); i++) {
-			if (isVariant) {
-				sequences[i] = ((Variant) variants.get(i)).getSequence().toString();
-			} else if (isGene) {
-				sequences[i] = ((Gene) variants.get(i)).getConsensus();
-			} else
-				throw new IllegalArgumentException(variants.get(0).getClass()
-						+ " is not a valid type .");
-		}
-		return sequences;
-	}
-	
 	/**
 	 * round function
 	 */

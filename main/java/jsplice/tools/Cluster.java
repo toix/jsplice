@@ -34,6 +34,15 @@ public class Cluster {
 		this.quantityRelCore = getPattern(0).getQuantityRelative();
 	}
 	
+	/**
+	 * @param patternHighest
+	 */
+	public Cluster(Pattern patternP) {
+		add(patternP);
+		this.patternCore = getPattern(0).pattern;
+		this.quantityRelCore = getPattern(0).getQuantityRelative();
+	}
+
 	/* (non-Javadoc)
 	 * @see java.lang.Object#toString()
 	 */
@@ -218,6 +227,21 @@ public class Cluster {
 	public void sortPattern() {
 		Collections.sort(pattern);
 		Collections.sort(patternSub);
+	}
+
+	/**
+	 * @param patternP
+	 */
+	public boolean add(Pattern patternP) {
+		return pattern.add(patternP);
+	}
+
+	/**
+	 * @param patternP
+	 */
+	public void addSub(Pattern patternP) {
+		patternSub.add(patternP);
+		
 	}
 	
 //	public void addQuantityCondition(String patternP) {

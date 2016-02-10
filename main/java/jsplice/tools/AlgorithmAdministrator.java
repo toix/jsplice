@@ -6,10 +6,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
-import old.Gene;
-import old.Genes;
 import jsplice.data.Config;
-import jsplice.data.Pattern;
 import jsplice.data.Sequence;
 import jsplice.data.Sequences;
 import jsplice.data.Variant;
@@ -385,13 +382,6 @@ public class AlgorithmAdministrator {
 				System.out.print(".");
 			}
 			System.out.println();
-		}
-	}
-	
-	private void printSomeGenes(Genes genes){
-		for (int i = 0; i < genes.size(); i++) {
-			Gene gene = genes.get(i);
-			System.out.println(gene.getGeneId());
 		}
 	}
 	

@@ -12,6 +12,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 
 import jsplice.data.Config;
+import jsplice.data.Pattern;
 import jsplice.data.RefGene;
 import jsplice.data.Sequence;
 import jsplice.data.Sequences;
@@ -530,7 +531,6 @@ public class Model {
 	}
 
 	/**
-		 * TODO use pattern tupel
 		 * TODO donor site 
 		 * TODO sub of merged pattern to non sub important pattern when containing it -> -1%
 		 * TODO limit cluster        merging OR subtract/check quantity of the important cluster from the longer cluster 
@@ -584,48 +584,36 @@ public class Model {
 				}
 				
 				// quantityAbs / quantityCondition
-				HashMap<String, Double> quantityRelative = Model.relativeQuantity(quantityAbs, quantityCondition);
+				// TODO rename
+				HashMap<String, Pattern> quantityRelative = Model.relativeQuantity(quantityAbs, quantityCondition);
 				
 				// create cluster for the best pattern and add all sub-pattern
 				double limit = 0.9;
-	//			System.out.println("abs:" + quantityAbs);
-	//			System.out.println("con:" + quantityCondition);
-	//			System.out.println("rel:" + quantityRelative);
-				double quantityHighest;
 				HashMap<String, Cluster> clusterHash = new HashMap<String, Cluster>();
 				ArrayList<Cluster> cluster = new ArrayList<Cluster>();
+				Pattern patternBest;
 				do {
-					String patternHighest = findHighestPattern(quantityRelative);
-					quantityHighest = quantityRelative.get(patternHighest);
+					patternBest = findHighestPattern(quantityRelative);
 					// add similar pattern to cluster
-					if (quantityHighest > limit) {
-						Cluster clusterNew;
-						if (!quantityCondition.containsKey(patternHighest)) {
-							clusterNew = new Cluster(patternHighest, quantityAbs.get(patternHighest), 0);
-						} else {
-							clusterNew = new Cluster(patternHighest, quantityAbs.get(patternHighest), quantityCondition.get(patternHighest));
-						}
+					if (patternBest.getQuantityRelative() > limit) {
+						Cluster clusterNew = new Cluster(patternBest);
 						cluster.add(clusterNew);
-						quantityRelative.remove(patternHighest);
-						Iterator<Entry<String, Double>> patternIt = quantityRelative.entrySet().iterator();
+						quantityRelative.remove(patternBest);
+						Iterator<Entry<String, Pattern>> patternIt = quantityRelative.entrySet().iterator();
 						while (patternIt.hasNext()) {
-							String pattern = patternIt.next().getKey();
-							if (patternHighest.contains(pattern)) {
-								if (!quantityCondition.containsKey(pattern)) {
-									clusterNew.addSub(pattern, quantityAbs.get(pattern), 0);
-								} else {
-									clusterNew.addSub(pattern, quantityAbs.get(pattern), quantityCondition.get(pattern));
-								}
-								double percentage = (double) quantityAbs.get(pattern) / quantityAbs.get(patternHighest);
+							Pattern pattern = patternIt.next().getValue();
+							if (patternBest.contains(pattern)) {
+								clusterNew.addSub(pattern);
+								double percentage = (double) pattern.quantityAbs / patternBest.quantityAbs;
 								if (percentage > 0.5) {
 									patternIt.remove();
 								} else {
-									quantityAbs.put(pattern, quantityAbs.get(pattern) - quantityAbs.get(patternHighest));
+									pattern.quantityAbs -= patternBest.quantityAbs;
 								}
 							}
 						}
 					}
-				} while (quantityHighest > limit);
+				} while (patternBest.getQuantityRelative() > limit);
 				// add all cluster as subset of the more important cluster
 				for (int i = 0; i < cluster.size(); i++) {
 					String patternMain = cluster.get(i).getPattern();
@@ -664,20 +652,20 @@ public class Model {
 			}
 
 	/**
-	 * @param quantityRelative
+	 * @param pattern
 	 * @return
 	 */
-	private static String findHighestPattern(HashMap<String, Double> quantityRelative) {
-		Iterator<Entry<String, Double>> patternIt = quantityRelative.entrySet().iterator();
+	private static Pattern findHighestPattern(HashMap<String, Pattern> pattern) {
+		Iterator<Entry<String, Pattern>> patternIt = pattern.entrySet().iterator();
 		double valueMax = -1000000000;
-		String patternMax = "";
+		Pattern patternMax = null;
 		// crate a cluster for relevant pattern and remove short ones
 		while (patternIt.hasNext()) {
-			Entry<String, Double> entry = patternIt.next();
-			double value = (double) entry.getValue();
-			if (valueMax < value) {
-				valueMax = value;
-				patternMax = entry.getKey();
+			Entry<String, Pattern> entry = patternIt.next();
+			Pattern patternCurrent = (Pattern) entry.getValue();
+			if (valueMax < patternCurrent.getQuantityRelative()) {
+				valueMax = patternCurrent.getQuantityRelative();
+				patternMax = patternCurrent;
 			}
 		}
 		return patternMax;
@@ -685,26 +673,24 @@ public class Model {
 
 	/**
 	 * TODO unequal results for same quantities
-		 * @param quantityAbs
+		 * @param quantityAbsolute
 		 * @param quantityCondition
 		 * @return 
 		 */
-		public static HashMap<String, Double> relativeQuantity(HashMap<String, Integer> quantityAbs, HashMap<String,Integer> quantityCondition) {
-			HashMap<String, Double> patternConditional = new HashMap<String, Double>();
-			Iterator<Entry<String, Integer>> patternIt = quantityAbs.entrySet().iterator();
+		public static HashMap<String, Pattern> relativeQuantity(HashMap<String, Integer> quantityAbsolute, HashMap<String,Integer> quantityCondition) {
+			HashMap<String, Pattern> pattern = new HashMap<String, Pattern>();
+			Iterator<Entry<String, Integer>> patternIt = quantityAbsolute.entrySet().iterator();
 			while (patternIt.hasNext()) {
 				Entry<String, Integer> entry = patternIt.next();
-				String pattern = entry.getKey();
-			    double quantity = entry.getValue();
-	//		    System.out.println(quantity +"* ("+(double)Math.pow(4, pattern.length())+" / "+numOfPattern[pattern.length()/2]+")");
-	//		    System.out.println("relQty "+ pattern +" : " + getRelativePercentage(quantity, pattern.length(), numOfPattern));
-			    double quantityCon = 0;
-			    if (quantityCondition.containsKey(pattern)) {
-					quantityCon = quantityCondition.get(pattern);
+				String patternKey = entry.getKey();
+			    int quantityAbs = entry.getValue();
+			    int quantityCon = 0;
+			    if (quantityCondition.containsKey(patternKey)) {
+					quantityCon = quantityCondition.get(patternKey);
 				}
-			    double quantityConditional = new BigDecimal(quantity - 1).divide(new BigDecimal(quantityCon + 1), 50, RoundingMode.HALF_UP).doubleValue();
-		    	patternConditional.put(pattern, quantityConditional);
+			    Pattern patternNew = new Pattern(patternKey, quantityAbs, quantityCon);
+		    	pattern.put(patternKey, patternNew);
 			}
-			return patternConditional;
+			return pattern;
 		}
 }
