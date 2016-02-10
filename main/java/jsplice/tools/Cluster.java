@@ -137,11 +137,11 @@ public class Cluster {
 		for (int i = 0; i < pattern.size(); i++) {
 			String patternEntry = getPattern(i).pattern;
 			int align = patternEntry.indexOf(getPattern());
-			double quantityRelative = getPattern(i).getQuantityRelative();
+			double quantityRelativeLog = Math.log(getPattern(i).getQuantityRelative()) / Math.log(2);
 			for (int lp = 0, lm = lengthOverlapMax - align; lp < patternEntry.length(); lp++, lm++) {
 				int baseIdx = Functions.mapNumber.get(patternEntry.charAt(lp));
-				countWeighted[lm][baseIdx] += quantityRelative;
-				sumWeighted[lm] += quantityRelative;
+				countWeighted[lm][baseIdx] += quantityRelativeLog;
+				sumWeighted[lm] += quantityRelativeLog;
 			}
 		}
 		// divide probability sums through sum and calculate Information Matrix
@@ -149,7 +149,7 @@ public class Cluster {
 		for (int l = 0; l < lengthCluster; l++) {
 //			System.out.println(Functions.arrayToString(probability[l], 2));
 			for (int b = 0; b < numberOfBases; b++) {
-				double error = (4.0 - 1) / (2 * Math.log(2) * (sum[l]-1));	// TODO check calculation
+				double error = (4.0 - 1) / (2 * Math.log(2) * (sum[l]-2));	// TODO check calculation
 				double probability = count[l][b] / sum[l];
 				weightMatrix[l][b] = 2.0 - (-Math.log(probability) / Math.log(2) + error);
 			}
@@ -195,7 +195,7 @@ public class Cluster {
 			int baseNumber = Functions.mapNumber.get(patternP.charAt(l1));
 			individualInformation[l1] = weightMatrix[l2][baseNumber];
 		}
-		return Functions.sum(individualInformation);
+		return Functions.sum(individualInformation);// * Math.log(quantityRelCore) / Math.log(2);
 	}
 	
 	/**

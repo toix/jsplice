@@ -534,7 +534,6 @@ public class Model {
 		 * TODO donor site 
 		 * TODO sub of merged pattern to non sub important pattern when containing it -> -1%
 		 * TODO limit cluster        merging OR subtract/check quantity of the important cluster from the longer cluster 
-		 * TODO sub-pattern of clusters that where merged with smaller pattern
 		 * TODO penalty with cluster out of conditional (cryptic)
 		 * TODO separate cluster for splice site
 		 * TODO respect average/median position in cluster
