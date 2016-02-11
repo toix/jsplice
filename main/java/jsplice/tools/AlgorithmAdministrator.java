@@ -2,14 +2,13 @@ package jsplice.tools;
 
 import java.rmi.UnexpectedException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 
 import jsplice.data.Config;
 import jsplice.data.Sequence;
 import jsplice.data.Sequences;
 import jsplice.data.Variant;
+import jsplice.data.VariantsTupel;
 import jsplice.exception.Log;
 import jsplice.io.Variants;
 
@@ -18,13 +17,7 @@ import jsplice.io.Variants;
 */
 public class AlgorithmAdministrator {
 	
-	Variants variantsBenTrain;
-	Variants variantsBenTest;
-	Variants variantsPathoTrain;
-	Variants variantsPathoTest;
-	
 	public AlgorithmAdministrator(Variants variantsPathogene, Variants variantsBenign) throws UnexpectedException {
-		
 		
 		Log.add("#benign Variants: " + variantsBenign.size());
 		Log.add("#pathogene Variants: " + variantsPathogene.size());
@@ -227,38 +220,22 @@ public class AlgorithmAdministrator {
 	private void crossValidate(Variants variantsPathogene, Variants variantsBenign, boolean acceptor, String folder) throws UnexpectedException {
 		for (int i = 1; i < 301; i++) {
 			Log.add("\n - - - - - - - - - - - - - - - - - - - - - ", 3);
-			// separate training and test variants
 			Log.add("cross validation run nr. " + i, 3);
 			Log.writeToFile();
-			ArrayList<Variants> separatedVariants;
-			separatedVariants = separateData(variantsBenign);
-			variantsBenTrain = separatedVariants.get(0);
-			variantsBenTest = separatedVariants.get(1);
-			separatedVariants = separateData(variantsPathogene);
-			variantsPathoTrain = separatedVariants.get(0);
-			variantsPathoTest = separatedVariants.get(1);
+			VariantsTupel varBenig = VariantsTupel.createTestPool(variantsBenign);
+			VariantsTupel varPatho = VariantsTupel.createTestPool(variantsPathogene);
 			
-//			System.out.println("\n\n - - - - - - - - - - - - - - - - - - - - - \n");
-			// VariantFile trainVariantsBenign = clinVarBenign.filteVariants(intronExon);
-			// trainVariantsBenign = trainVariantsBenign.filterNonACGT();
-			// Sequences standardModel = new Sequences(trainVariantsBenign, intronExon, false);
-			// standard model pathogene
 			Log.add(" - - - pathogene standard model - - - ", 3);
-			Model modelStdAcc = new Model(variantsPathoTrain, acceptor);
-			Log.add("Number of pathogene training sequences for acceptor site: " + modelStdAcc.getSequences().size(), 3);
-			Functions.writeToFile(modelStdAcc.matrixToString("acceptor matrix", modelStdAcc.getJunctionPosition()), folder
-					+ "accMatrix.tsv");
-			Model modelStdDon = new Model(variantsPathoTrain, !acceptor);
+			Model modelStdAcc = new Model(varPatho.train, acceptor);
+			Functions.writeToFile(modelStdAcc.matrixToString("A\tC\tG\tT", modelStdAcc.getJunctionPosition()), folder + "accMatrix.tsv");
+			Model modelStdDon = new Model(varPatho.train, !acceptor);
 			Log.add("Number of pathogene training sequences for donor site: " + modelStdDon.getSequences().size(), 3);
-			Functions.writeToFile(modelStdAcc.matrixToString("donor matrix", modelStdDon.getJunctionPosition()), folder + "donMatrix.tsv");
-			// create pathogene test sequences
+			Functions.writeToFile(modelStdAcc.matrixToString("A\tC\tG\tT", modelStdDon.getJunctionPosition()), folder + "donMatrix.tsv");
 			Log.add(" - - - pathogene test variants - - - ", 3);
-			// variantsPathoTest = VariantFile.extractCrypticVariants(variantsPathoTest, modelStdAcc, modelStdDon, false);
-			Sequences sequencesPathoTestAcc = new Sequences(variantsPathoTest, acceptor);
+			Sequences sequencesPathoTestAcc = new Sequences(varPatho.test, acceptor);
 			Log.add("Number of pathogene test sequences for acceptor site: " + sequencesPathoTestAcc.size(), 3);
-			// create benign test sequences
 			Log.add(" - - - benign test variants - - - ", 3);
-			Sequences sequencesBenTestAcc = new Sequences(variantsBenTest, acceptor);
+			Sequences sequencesBenTestAcc = new Sequences(varBenig.test, acceptor);
 			
 			// write benign results to file
 			String standardResultsBenign = getResultsTable(sequencesBenTestAcc, modelStdAcc, false);
@@ -287,33 +264,6 @@ public class AlgorithmAdministrator {
 			}
 		}
 		return result;
-	}
-
-	/**
-	 * @return two Variant Files; The first is the Train Data; The second is the test Data
-	 */
-	private static ArrayList<Variants> separateData(Variants variantsP) {
-		ArrayList<Variants> separatedVariants = new ArrayList<Variants>();
-		// create train and test variants
-		separatedVariants.add(new Variants(variantsP));		// separatedVariants.get(0) = Train
-		separatedVariants.add(new Variants());					// separatedVariants.get(1) = Test
-		int testSize = separatedVariants.get(0).size()/15;
-		// create array with unique random indices
-		ArrayList<Integer> orderedList = new ArrayList<Integer>();
-		for (int i = 0; i < separatedVariants.get(0).size(); i++) {
-			orderedList.add(new Integer(i));
-		}
-        Collections.shuffle(orderedList);
-        List<Integer> testIndices = orderedList.subList(0, testSize);
-        Collections.sort(testIndices);
-        // separate test and train variants
-        for (int i = testSize-1; i >= 0 ; i--) {
-        	separatedVariants.get(1).add(separatedVariants.get(0).get(testIndices.get(i)));
-		}
-        for (int i = testSize-1; i >= 0 ; i--) {
-        	separatedVariants.get(0).remove(testIndices.get(i));
-        }
-		return separatedVariants;
 	}
 
 	/**

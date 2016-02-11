@@ -275,8 +275,8 @@ public class Filter {
 				// with acceptor model
 				for (int k = minAcc, j = 0; k <= maxAcc; k++, j++) {
 					try {
-						totalInformationRefAcc[v][j] = modelStd.getIndividualInformation(sequence, k, true, true);
-						totalInformationAltAcc[v][j] = modelStd.getIndividualInformation(sequence, k, false, true);
+						totalInformationRefAcc[v][j] = modelStd.getInformation(sequence, k, true, true);
+						totalInformationAltAcc[v][j] = modelStd.getInformation(sequence, k, false, true);
 	//					System.out.print(k+": ");
 	//					System.out.println(totalInformationRefAcc[v][j] + " and " + totalInformationAltAcc[v][j]);
 					} catch (IllegalArgumentException e) {
@@ -287,8 +287,8 @@ public class Filter {
 				// with donor model
 				for (int k = minDon, j = 0; k <= maxDon; k++, j++) {
 					try {
-						totalInformationRefDon[v][j] = modelStdOtherSide.getIndividualInformation(sequence, k, true, true);
-						totalInformationAltDon[v][j] = modelStdOtherSide.getIndividualInformation(sequence, k, false, true);
+						totalInformationRefDon[v][j] = modelStdOtherSide.getInformation(sequence, k, true, true);
+						totalInformationAltDon[v][j] = modelStdOtherSide.getInformation(sequence, k, false, true);
 					} catch (IllegalArgumentException e) {
 						throw new IllegalArgumentException(e.getMessage() + "\n" + variant);
 					}
@@ -438,8 +438,8 @@ public class Filter {
 			for (int i = 0; i < variantsP.size(); i++) {
 				Sequence sequence = variantsP.get(i).getSequence();
 				int junction = sequence.getPositionJunction();
-				double ref = model.getIndividualInformation(sequence, junction, true, false).getTotalInformation();
-				double alt = model.getIndividualInformation(sequence, junction, false, false).getTotalInformation();
+				double ref = model.getInformation(sequence, junction, true, false).getTotalInformation();
+				double alt = model.getInformation(sequence, junction, false, false).getTotalInformation();
 				if (activating == ref > alt) {
 					filteredVariants.add(variantsP.get(i));
 				} else {
@@ -466,8 +466,8 @@ public class Filter {
 		for (int i = 0; i < variants.size(); i++) {
 			Sequence sequence = variants.get(i).getSequence();
 			int junction = sequence.getPositionJunction();
-			double ref = model.getIndividualInformation(sequence, junction, true, false).getTotalInformation();
-			double alt = model.getIndividualInformation(sequence, junction, false, false).getTotalInformation();
+			double ref = model.getInformation(sequence, junction, true, false).getTotalInformation();
+			double alt = model.getInformation(sequence, junction, false, false).getTotalInformation();
 			if (ref < alt) {
 				strangeVariants.add(variants.get(i));
 			}
