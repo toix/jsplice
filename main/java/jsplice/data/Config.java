@@ -1,5 +1,7 @@
 package jsplice.data;
 
+import jsplice.tools.Functions;
+
 import com.beust.jcommander.ParameterException;
 
 /**
@@ -17,10 +19,6 @@ public class Config {
 	private static String logFile = "jsplice.log";
 
 	/**
-	 * The maximum length of the pattern for clustering
-	 */
-	public static final int lengthIntronPatternMax = 12;
-	/**
 	 * Length of the whole sequence used for the algorithm. <br/>
 	 * 2 * sequenceLength defines the length of the training data <br/>
 	 * Has to be even. Is the sum of modelIntronLength and modelExonLength
@@ -35,17 +33,23 @@ public class Config {
 	 * Multiplier by that the training data is longer than the analysis length (sequenceLength) <br/>
 	 * Has to be at least 3
 	 */
-	private static int factor = 3;
+	private static int factor = 4;
 	/**
 	 * false 	-> GRCh37 will be used <br/>
 	 * true 	-> GRCh38 will be used
 	 */
-	public static int lengthIntronCryptic = 3;
 	private static boolean useGrch38 = false;
-//	/**
+/**
+	 * The maximum length of the pattern for clustering
+	 */
+	public static final int lengthIntronPatternMax = 12;
+	//	/**
 //	 * Threshold for the difference of the sum of the individual information between reference and alternate
 //	 */
 //	private static double thresholdAltRef = 2;
+	public static final int distanceClusterMinAcceptor = 4;
+	public static final int distanceClusterMinDonor = 6;
+	public static final int distanceClusterMax = 40;
 	
 	public static final String[] chromosomeNames = { "1", "2", "3", "4", "5",
 		"6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17",
@@ -222,5 +226,27 @@ public class Config {
 	}
 	public static boolean isUseGrch38() {
 		return useGrch38;
+	}
+	
+	/**
+	 * @param acceptorP
+	 * @return The length of the Intron for the cryptic site prediction
+	 */
+	public static int getLengthIntronCryptic(boolean acceptorP) {
+		return (int) Functions.round((getDistanceClusterMin(acceptorP) * 1.3), 0);
+	}
+	/**
+	 * @param acceptorP 
+	 * @return
+	 */
+	public static int getDistanceClusterMin(boolean acceptorP) {
+		return acceptorP? distanceClusterMinAcceptor : distanceClusterMinDonor;
+	}
+	/**
+	 * @param acceptorP 
+	 * @return
+	 */
+	public static int getDistanceClusterMax() {
+		return distanceClusterMax;
 	}
 }

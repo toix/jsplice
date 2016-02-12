@@ -30,7 +30,7 @@ public class Model {
 	 * Number of DNA Bases (=4)
 	 */
 	public static final int numberOfBases = Functions.bases.length();
-	private static HashMap<String, Cluster> clusterHash;
+	private HashMap<String, Cluster> clusterHash;
 	/**
 	 * The probability of the bases at each position relative to the junction
 	 */
@@ -47,10 +47,6 @@ public class Model {
 	 * Pearson correlation of all locations between each other
 	 */
 	private double[][] correlation;
-	/**
-	 * true -> calculate weight matrix and Individual Information by position and base of the changes
-	 */
-	private boolean filtered = false;
 	/**
 	 * 
 	 */
@@ -70,10 +66,8 @@ public class Model {
 		}
 		this.sequences = new Sequences(variantsP, acceptorP);
 		weightMatrix = calculateMatrix();
-		if (acceptorP) {
-			clusterHash = findPattern(variantsP, acceptorP);
-		}
-		this.filtered = false;
+		clusterHash = findPattern(variantsP, acceptorP);
+		Log.add("Number of pathogene training sequences for " + (acceptorP? "acceptor" : "donor") + " site: " + sequences.getSequences().size(), 3);
 	}
 
 	/**
@@ -84,7 +78,7 @@ public class Model {
 	 * @param filtered
 	 *            true -> create the change model
 	 */
-	public Model(Variants variantsP, Model modelStd, Model modelStdOtherSide, boolean acceptorP) {
+	public Model(Variants variantsP, boolean acceptorP, Model modelStd, Model modelStdOtherSide) {
 		if (variantsP.size() < 1) {
 			throw new IllegalArgumentException("The parameter contains no variants.");
 		}
@@ -94,10 +88,7 @@ public class Model {
 		variants = Filter.filterNonACGT(variants);
 		sequences = new Sequences(variants, acceptorP);
 		weightMatrix = calculateMatrix();
-		if (acceptorP) {
-			clusterHash = findPattern(variantsP, acceptorP);
-		}
-		this.filtered = true;
+		clusterHash = findPattern(variantsP, acceptorP);
 	}
 
 	/**
@@ -377,14 +368,10 @@ public class Model {
 		}
 		int min = Config.getMinAnalysisPosition(sequenceP.isAcceptor(), isAcceptor());
 		int max = Config.getMaxAnalysisPosition(sequenceP.isAcceptor(), isAcceptor());
-		// System.out.println("II min: " + min + "\t max: " + max);
-		// System.out.println("seq: " + sequenceP.isAcceptor() + "\t model: " + isAcceptor());
 		if (junction < min || junction > max) {
 			throw new IllegalArgumentException("The position (=" + junction + ") has to be a number between " + min + " and " + max);
 		}
-		// System.out.println("acc seq: " + sequenceP.isAcceptor() + "\t acc model: " + isAcceptor());
-		// System.out.println("The junction (=" + junction + ") is between " + min + " and " + max);
-		int intronLengthMax = Config.lengthIntronCryptic;
+		int intronLengthMax = Config.getLengthIntronCryptic(isAcceptor());
 		int patternStart = junction - sequences.getJunctionPosition();
 		int matrixStart = 0;
 		int matrixEnd = sequences.length();
@@ -432,14 +419,14 @@ public class Model {
 	 * @param cluster
 	 * @return sum of Individual Information for every sequence
 	 */
-	public double[] getIndividualInformation(Sequences sequences, boolean reference, boolean cluster) {
+	public double[] getInformation(Sequences sequences, boolean reference, boolean cluster) {
 		double[] indInfo = new double[sequences.size()];
 		for (int s = 0; s < sequences.size(); s++) {
 			Sequence sequence = sequences.get(s);
 			int junction = sequence.getPositionJunction();
 			if (cluster) {
 				indInfo[s] = getInformation(sequence, junction, reference, true).getTotalInformation()
-						+ sequence.getMaxPatternQty(Model.clusterHash, reference);
+						+ sequence.getMaxPatternQty(clusterHash, reference);
 			} else {
 				indInfo[s] = getInformation(sequence, junction, reference, false).getTotalInformation();
 			}
@@ -510,10 +497,14 @@ public class Model {
 	}
 
 	/**
-	 * Find all containing the Variant position and cluster them. TODO donor site TODO sub of merged pattern to non sub important pattern
-	 * when containing it -> -1% TODO limit cluster merging OR subtract/check quantity of the important cluster from the longer cluster TODO
-	 * penalty with cluster out of conditional (cryptic) TODO separate cluster for splice site TODO respect average/median position in
-	 * cluster
+	 * Find all containing the Variant position and cluster them. 
+	 * TODO sub of merged pattern to non sub important pattern when containing it -> -1% 
+	 * TODO limit cluster merging OR subtract/check quantity of the important cluster from the longer cluster 
+	 * TODO penalty with cluster out of conditional (cryptic) 
+	 * TODO separate cluster for splice site 
+	 * TODO respect average/median position in cluster
+	 * TODO respect sub-pattern in countClusterInSequences()
+	 * TODO cluster merging only for cluster that are one base longer; recursively
 	 * 
 	 * important sequence as non-sub-pattern?
 	 * 
@@ -522,9 +513,10 @@ public class Model {
 	 */
 	static HashMap<String, Cluster> findPattern(Variants variantsP, boolean acceptorP) {
 		int lengthIntronMax = Config.lengthIntronPatternMax;
-		int distanceJunctionMax = 3;
+		int distanceJunctionMin = Config.getDistanceClusterMin(acceptorP);
+		int distanceJunctionMax = Config.getDistanceClusterMax();
 		variantsP = Filter.filterVariantType(variantsP, acceptorP);
-		variantsP = Filter.extractVariantsInRelativeRange(variantsP, distanceJunctionMax + 1, 20);
+		variantsP = Filter.extractVariantsInRelativeRange(variantsP, distanceJunctionMin, distanceJunctionMax);
 		variantsP = Filter.deleteDuplicateJunctions(variantsP);
 		HashMap<String, Integer> quantityAbs = new HashMap<String, Integer>();
 		HashMap<String, Integer> quantityCondition = new HashMap<String, Integer>();
@@ -539,7 +531,7 @@ public class Model {
 					int from = posChangeAbs + shift - length + 1;
 					int to = posChangeAbs + shift;
 					int junction = sequence.getPositionJunction();
-					if (Math.abs(from - junction) > distanceJunctionMax && Math.abs(to - junction) > distanceJunctionMax) {
+					if (Math.abs(from - junction) > distanceJunctionMin-1 && Math.abs(to - junction) > distanceJunctionMin-1) {
 						String patternRef = sequence.substring(from, to + 1);
 						if (!quantityAbs.containsKey(patternRef)) {
 							quantityAbs.put(patternRef, 1);
@@ -568,7 +560,7 @@ public class Model {
 		cluster = countClusterInSequences(cluster, variantsP);
 
 		HashMap<String, Cluster> clusterHash = createHash(cluster);
-
+		Log.add(cluster, 2);
 		return clusterHash;
 	}
 

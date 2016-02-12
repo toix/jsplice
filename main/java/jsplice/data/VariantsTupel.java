@@ -16,7 +16,7 @@ import jsplice.tools.Functions;
  */
 public class VariantsTupel {
 
-	public static final double percentageTest = 0.01;
+	public static final double percentageTest = 0.05;
 	public Variants test;
 	public Variants train;
 	

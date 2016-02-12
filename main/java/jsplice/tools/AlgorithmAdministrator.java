@@ -1,9 +1,5 @@
 package jsplice.tools;
 
-import java.rmi.UnexpectedException;
-import java.util.ArrayList;
-import java.util.HashMap;
-
 import jsplice.data.Config;
 import jsplice.data.Sequence;
 import jsplice.data.Sequences;
@@ -13,11 +9,12 @@ import jsplice.exception.Log;
 import jsplice.io.Variants;
 
 /**
+ * TODO print all variants to analyze them statistically (position, donor vs acceptor)
  * In AlgorithmAdministrator the different algorithms are applied on the data
 */
 public class AlgorithmAdministrator {
 	
-	public AlgorithmAdministrator(Variants variantsPathogene, Variants variantsBenign) throws UnexpectedException {
+	public AlgorithmAdministrator(Variants variantsPathogene, Variants variantsBenign) {
 		
 		Log.add("#benign Variants: " + variantsBenign.size());
 		Log.add("#pathogene Variants: " + variantsPathogene.size());
@@ -36,6 +33,20 @@ public class AlgorithmAdministrator {
 		crossValidate(variantsPathogene, variantsBenign, acceptor, folder);
 		
 		
+		// analyze certain sequence
+//		Log.add("\n---- certain sequence ---", 3);
+//		Sequence seqTest = findSequencebyPosition(new Sequences(variantsPathogene, acceptor), 66905841);
+//		Log.add(seqTest.getVariant()+"", 3);
+//		Log.add(seqTest.getStringExtended(), 2);
+//		int crypticPos = 0;//seqTest.getPositionChange()+1;
+//		double natRef = modelStdAcc.getInformation(seqTest, seqTest.getPositionJunction(), true, false).getTotalInformation();
+//		double natAlt = modelStdAcc.getInformation(seqTest, seqTest.getPositionJunction(), false, false).getTotalInformation();
+//		double kryRef = modelStdAcc.getInformation(seqTest, crypticPos, true, false).getTotalInformation();
+//		double kryAlt = modelStdAcc.getInformation(seqTest, crypticPos, false, false).getTotalInformation();
+//		Log.add("nat: " + natRef + ">" + natAlt + "\t kry: " + kryRef + ">" + kryAlt + " at " + (crypticPos), 2);
+//		Variants variantsTest = new Variants();
+//		variantsTest.add(seqTest.getVariant());
+//		Filter.extractCrypticVariants(variantsTest, modelStdAcc, modelStdDon, false);
 		
 		// separate training and test variants
 //		ArrayList<VariantFile> separatedVariants;
@@ -120,20 +131,6 @@ public class AlgorithmAdministrator {
 //		String outRandomChangeStd = getResultsTable(sequencesRandomChg, modelStdAcc);
 //		Functions.writeToFile(outRandomChangeStd, "results/randomChangeStd.tsv");
 		
-		// analyze certain sequence
-//		Log.add("\n---- certain sequence ---", 3);
-//		Sequence seqTest = findSequencebyPosition(new Sequences(variantsPathogene, acceptor), 241810764);
-//		Log.add(seqTest.getVariant()+"", 3);
-//		Log.add(seqTest.getStringExtended(), 2);
-//		int crypticPos = 0;//seqTest.getPositionChange()+1;
-//		double natRef = modelStdAcc.getIndividualInformation(seqTest, seqTest.getPositionJunction(), true, false).getTotalInformation();
-//		double natAlt = modelStdAcc.getIndividualInformation(seqTest, seqTest.getPositionJunction(), false, false).getTotalInformation();
-//		double kryRef = modelStdAcc.getIndividualInformation(seqTest, crypticPos, true, false).getTotalInformation();
-//		double kryAlt = modelStdAcc.getIndividualInformation(seqTest, crypticPos, false, false).getTotalInformation();
-//		Log.add("nat: " + natRef + ">" + natAlt + "\t kry: " + kryRef + ">" + kryAlt + " at " + (crypticPos), 2);
-//		Variants variantsTest = new Variants();
-//		variantsTest.add(seqTest.getVariant());
-//		Filter.extractCrypticVariants(variantsTest, modelStdAcc, modelStdDon, false);
 		
 		
 		// activating variants
@@ -217,7 +214,7 @@ public class AlgorithmAdministrator {
 	 * @throws UnexpectedException 
 	 * 
 	 */
-	private void crossValidate(Variants variantsPathogene, Variants variantsBenign, boolean acceptor, String folder) throws UnexpectedException {
+	private void crossValidate(Variants variantsPathogene, Variants variantsBenign, boolean acceptorP, String folder) {
 		for (int i = 1; i < 301; i++) {
 			Log.add("\n - - - - - - - - - - - - - - - - - - - - - ", 3);
 			Log.add("cross validation run nr. " + i, 3);
@@ -226,26 +223,26 @@ public class AlgorithmAdministrator {
 			VariantsTupel varPatho = VariantsTupel.createTestPool(variantsPathogene);
 			
 			Log.add(" - - - pathogene standard model - - - ", 3);
-			Model modelStdAcc = new Model(varPatho.train, acceptor);
-			Functions.writeToFile(modelStdAcc.matrixToString("A\tC\tG\tT", modelStdAcc.getJunctionPosition()), folder + "accMatrix.tsv");
-			Model modelStdDon = new Model(varPatho.train, !acceptor);
-			Log.add("Number of pathogene training sequences for donor site: " + modelStdDon.getSequences().size(), 3);
-			Functions.writeToFile(modelStdAcc.matrixToString("A\tC\tG\tT", modelStdDon.getJunctionPosition()), folder + "donMatrix.tsv");
+			Model modelStd = new Model(varPatho.train, acceptorP);
+			Functions.writeToFile(modelStd.matrixToString("A\tC\tG\tT", modelStd.getJunctionPosition()), folder + "accMatrix.tsv");
+//			Model modelStdOther = new Model(varPatho.train, !acceptorP);
+//			Functions.writeToFile(modelStd.matrixToString("A\tC\tG\tT", modelStdOther.getJunctionPosition()), folder + "donMatrix.tsv");
 			Log.add(" - - - pathogene test variants - - - ", 3);
-			Sequences sequencesPathoTestAcc = new Sequences(varPatho.test, acceptor);
-			Log.add("Number of pathogene test sequences for acceptor site: " + sequencesPathoTestAcc.size(), 3);
+			Sequences sequencesPathoTest = new Sequences(varPatho.test, acceptorP);
+			Log.add("Number of pathogene test sequences for " + (acceptorP? "acceptor" : "donor") + " site: " + sequencesPathoTest.size(), 3);
 			Log.add(" - - - benign test variants - - - ", 3);
-			Sequences sequencesBenTestAcc = new Sequences(varBenig.test, acceptor);
+			Sequences sequencesBenTest = new Sequences(varBenig.test, acceptorP);
+			Log.add("Number of benign test sequences for " + (acceptorP? "acceptor" : "donor") + " site: " + sequencesPathoTest.size(), 3);
 			
 			// write benign results to file
-			String standardResultsBenign = getResultsTable(sequencesBenTestAcc, modelStdAcc, false);
+			String standardResultsBenign = getResultsTable(sequencesBenTest, modelStd, false);
 			Functions.writeToFile(standardResultsBenign, folder + "benAccStd" + i + ".tsv");
-			String changeResultsBeingn = getResultsTable(sequencesBenTestAcc, modelStdAcc, true);
+			String changeResultsBeingn = getResultsTable(sequencesBenTest, modelStd, true);
 			Functions.writeToFile(changeResultsBeingn, folder + "benAccChg" + i + ".tsv");
 			// write pathogene results to file
-			String standardResultsPathogene = getResultsTable(sequencesPathoTestAcc, modelStdAcc, false);
+			String standardResultsPathogene = getResultsTable(sequencesPathoTest, modelStd, false);
 			Functions.writeToFile(standardResultsPathogene, folder + "pathoAccStd" + i + ".tsv");
-			String changeResultsPathogene = getResultsTable(sequencesPathoTestAcc, modelStdAcc, true);
+			String changeResultsPathogene = getResultsTable(sequencesPathoTest, modelStd, true);
 			Functions.writeToFile(changeResultsPathogene, folder + "pathoAccChg" + i + ".tsv");
 			Log.writeToFile();
 		}
@@ -272,8 +269,8 @@ public class AlgorithmAdministrator {
 	 * @return
 	 */
 	private static String getResultsTable(Sequences testSequences,  Model modelStdAcc, boolean cluster) {
-		double[] resultsReference = modelStdAcc.getIndividualInformation(testSequences, true, cluster);
-		double[] resultsAlternate = modelStdAcc.getIndividualInformation(testSequences, false, cluster);
+		double[] resultsReference = modelStdAcc.getInformation(testSequences, true, cluster);
+		double[] resultsAlternate = modelStdAcc.getInformation(testSequences, false, cluster);
 		String results = "";
 		String line = "pos\t r\t a\t ref\t  alt\t start\t sequence";
 		results += line;
@@ -294,10 +291,10 @@ public class AlgorithmAdministrator {
 	 * @return
 	 */
 	private static String getDifferences(Sequences testSequences,  Model modelStd, Model modelCh) {
-		double[] resultsReferenceStd = modelStd.getIndividualInformation(testSequences, true, false);
-		double[] resultsAlternateStd = modelStd.getIndividualInformation(testSequences, false, false);
-		double[] resultsReferenceCh = modelCh.getIndividualInformation(testSequences, true, false);
-		double[] resultsAlternateCh = modelCh.getIndividualInformation(testSequences, false, false);
+		double[] resultsReferenceStd = modelStd.getInformation(testSequences, true, false);
+		double[] resultsAlternateStd = modelStd.getInformation(testSequences, false, false);
+		double[] resultsReferenceCh = modelCh.getInformation(testSequences, true, false);
+		double[] resultsAlternateCh = modelCh.getInformation(testSequences, false, false);
 		String results = "";
 		String line = "pos\t r\t a\t ref\t  alt";
 		results += line;
