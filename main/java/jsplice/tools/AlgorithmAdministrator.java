@@ -20,6 +20,9 @@ public class AlgorithmAdministrator {
 		Log.add("#pathogene Variants: " + variantsPathogene.size());
 		boolean acceptor = true;
 		
+		String folder = "results/";
+		printAllVariants(variantsPathogene, folder);
+		
 		// standard model pathogene
 		Log.add("\n - - - pathogene standard model - - - ", 3);
 		Model modelStdAcc = new Model(variantsPathogene, acceptor);
@@ -29,7 +32,7 @@ public class AlgorithmAdministrator {
 //		Variants variantsPathogeneNonCry = Filter.extractCrypticVariants(variantsPathogene, modelStdAcc, modelStdDon, false);
 //		variantsPathogene = VariantFile.concat(Filter.filterActivatingVariants(variantsPathogene, modelStdAcc, true), Filter.filterActivatingVariants(variantsPathogene, modelStdDon, true));
 		
-		String folder = "results/patternSep/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
+		folder = "results/patternSep/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
 		crossValidate(variantsPathogene, variantsBenign, acceptor, folder);
 		
 		
@@ -178,6 +181,27 @@ public class AlgorithmAdministrator {
 //		}
 	}
 	
+	/**
+	 * @param variantsP
+	 * @param folder
+	 */
+	private void printAllVariants(Variants variants, String folder) {
+		String fileContent = "";
+		String line = "pos\t r\t a\t start\t sequence";
+		fileContent += line;
+		for (int v = 0; v < variants.size(); v++) {
+			Variant variant = variants.get(v);
+			Sequence sequence = variant.getSequence();
+			String ref = variant.getRef();
+			String alt = variant.getAlt();
+			int posRel = sequence.getPositionChangeRelative();
+			int posAbs = variant.getStart();
+			line = "\n" + posRel + "\t " + ref + "\t " + alt + "\t " + posAbs + "\t " + sequence.getStringExtended();
+			fileContent += line;
+		}
+		Functions.writeToFile(fileContent, folder + "variants.tsv");
+	}
+
 	/**
 	 * @param pattern1
 	 * @param pattern2
