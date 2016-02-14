@@ -50,7 +50,7 @@ public class Cluster {
 	 */
 	@Override
 	public String toString() {
-		return "\n" + getPatternCore() + ", " + getPatternCore().getQuantityRelative() + ":\n" + pattern + ",\n sub: " + patternSub;
+		return "\n" + getPatternCore() + ":\n" + pattern + ",\n sub: " + patternSub;
 	}
 	
 	public Pattern getPatternCore() {
@@ -221,15 +221,16 @@ public class Cluster {
 	 * contains(String) will sort
 	 * @param patternP
 	 */
-	public void addQuantity(String patternP){
+	public boolean addQuantity(String patternP){
 		boolean added = false;
-		for (int p = 0; p < pattern.size(); p++) {
+		for (int p = 0; p < pattern.size() && !added; p++) {
 			String patternCurrent = pattern.get(p).pattern;
 			if (patternP.contains(patternCurrent)) {
 				pattern.get(p).quantityUnique++;
 				added = true;
 			}
 		}
+		return added;
 	}
 
 	/**

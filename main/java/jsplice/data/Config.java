@@ -37,7 +37,7 @@ public class Config {
 	 * true 	-> GRCh38 will be used
 	 */
 	private static boolean useGrch38 = false;
-	public static String folder = "results/patternAbsTest/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
+	public static String folder = "results/patternRel/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
 	private static String logFile = folder + "jsplice.log";
 	/**
 	 * The maximum length of the pattern for clustering
