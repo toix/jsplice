@@ -615,15 +615,15 @@ public class Model {
 				//
 				if (i != j && clusterP.get(j).getPatternCore().contains(patternMain)) {
 					clusterP.get(i).add(clusterP.get(j));
-					int mainAbs = clusterP.get(i).getPattern(0).quantityAbs;
-					int subAbs = clusterP.get(j).getPattern(0).quantityAbs;
-					double share = (double) subAbs / mainAbs;
-					if (share > 0.5) {
-						clusterP.get(j).getPattern(0).quantityAbs -= mainAbs;
-						j++;
-					} else {
+//					int mainAbs = clusterP.get(i).getPattern(0).quantityAbs;
+//					int subAbs = clusterP.get(j).getPattern(0).quantityAbs;
+//					double share = (double) subAbs / mainAbs;
+//					if (share > 0.5) {
+//						clusterP.get(j).getPattern(0).quantityAbs -= mainAbs;
+//						j++;
+//					} else {
 						clusterP.remove(j);
-					}
+//					}
 				} else {
 					j++;
 				}

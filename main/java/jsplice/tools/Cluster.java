@@ -223,7 +223,7 @@ public class Cluster {
 	 */
 	public void addQuantity(String patternP){
 		boolean added = false;
-		for (int p = 0; !added; p++) {
+		for (int p = 0; p < pattern.size(); p++) {
 			String patternCurrent = pattern.get(p).pattern;
 			if (patternP.contains(patternCurrent)) {
 				pattern.get(p).quantityUnique++;
