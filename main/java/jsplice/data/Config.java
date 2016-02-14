@@ -233,7 +233,7 @@ public class Config {
 	 * @return The length of the Intron for the cryptic site prediction
 	 */
 	public static int getLengthIntronCryptic(boolean acceptorP) {
-		return (int) Functions.round((getDistanceClusterMin(acceptorP) * 1.3), 0);
+		return (int) Functions.round((getDistanceClusterMin(acceptorP) + 0), 0);
 	}
 	/**
 	 * @param acceptorP 

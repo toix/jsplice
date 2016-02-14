@@ -161,12 +161,13 @@ public class Sequence {
 	 * @return
 	 */
 	public double getMaxPatternQty(HashMap<String,Cluster> quantityRelative, boolean reference) {
+		double deltaPattern = 0;//11.5;
 		int lengthPatternMax = Config.lengthIntronPatternMax;
 		int distanceJunctionMin = Config.getDistanceClusterMin(isAcceptor());
 		int distanceJunctionMax = Config.getDistanceClusterMax();
 		int posChangeRel = Math.abs(getPositionChangeRelative());
 		int posChangeAbs = getPositionChange();
-		double quantityMax = -1;
+		double quantityMax = - 1;
 		// find max pattern for ref and alt
 		if (posChangeRel >= distanceJunctionMin && posChangeRel <= distanceJunctionMax) {
 			for (int length = 1; length <= lengthPatternMax; length++) {
@@ -190,12 +191,58 @@ public class Sequence {
 					}
 				}
 			}
+			quantityMax -= deltaPattern;
 		} else {
 			quantityMax = 0;
 		}
-		return (quantityMax);
+		return quantityMax;
 	}
 	
+	/**
+	 * Rate the sequence without knowledge about the variant
+	 * TODO write function
+	 * @param quantityRelative
+	 * @param reference
+	 * @return
+	 */
+	public double getMaxPatternQtyNoVariant(HashMap<String,Cluster> quantityRelative, boolean reference) {
+		double deltaPattern = 11.5;
+		int lengthPatternMax = Config.lengthIntronPatternMax;
+		int distanceJunctionMin = Config.getDistanceClusterMin(isAcceptor());
+		int distanceJunctionMax = Config.getDistanceClusterMax();
+		int posChangeRel = Config.getDistanceClusterMax();//Math.abs(getPositionChangeRelative());
+		int posChangeAbs = getPositionChange();
+		double quantityMax = - 1;
+		// find max pattern for ref and alt
+		if (posChangeRel >= distanceJunctionMin && posChangeRel <= distanceJunctionMax) {
+			for (int length = 1; length <= lengthPatternMax; length++) {
+				for (int shift = 0; shift < length; shift++) {
+					int from = posChangeAbs + shift - length + 1;
+					int to = posChangeAbs + shift;
+					int junction = getPositionJunction();
+	//				System.out.println("Math.abs(" + from + " - " + junction + ") > 3	&& Math.abs(" + to + " - " + junction + ") > 3)");
+					if (Math.abs(from - junction) > distanceJunctionMin	&& Math.abs(to - junction) > distanceJunctionMin) {
+						String pattern = substring(from, to + 1, reference);
+						double quantity = 0;
+						if (quantityRelative.containsKey(pattern)) {
+	//						System.out.println("new max: " + pattern);
+							quantity = quantityRelative.get(pattern).getInformation(pattern);
+						} else {
+	//						 System.out.println("No quantity found for pattern " + pattern);
+						}
+						if (quantityMax < quantity) {
+							quantityMax = quantity;
+						}
+					}
+				}
+			}
+			quantityMax -= deltaPattern;
+		} else {
+			quantityMax = 0;
+		}
+		return quantityMax;
+	}
+
 	/**
 	 * @return length of the first part of the sequence (intron or exon)
 	 */

@@ -32,7 +32,7 @@ public class AlgorithmAdministrator {
 //		Variants variantsPathogeneNonCry = Filter.extractCrypticVariants(variantsPathogene, modelStdAcc, modelStdDon, false);
 //		variantsPathogene = VariantFile.concat(Filter.filterActivatingVariants(variantsPathogene, modelStdAcc, true), Filter.filterActivatingVariants(variantsPathogene, modelStdDon, true));
 		
-		folder = "results/patternSep/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
+		folder = "results/pattern0214/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
 		crossValidate(variantsPathogene, variantsBenign, acceptor, folder);
 		
 		
@@ -239,7 +239,7 @@ public class AlgorithmAdministrator {
 	 * 
 	 */
 	private void crossValidate(Variants variantsPathogene, Variants variantsBenign, boolean acceptorP, String folder) {
-		for (int i = 1; i < 301; i++) {
+		for (int i = 1; i < 1001; i++) {
 			Log.add("\n - - - - - - - - - - - - - - - - - - - - - ", 3);
 			Log.add("cross validation run nr. " + i, 3);
 			Log.writeToFile();
@@ -256,7 +256,7 @@ public class AlgorithmAdministrator {
 			Log.add("Number of pathogene test sequences for " + (acceptorP? "acceptor" : "donor") + " site: " + sequencesPathoTest.size(), 3);
 			Log.add(" - - - benign test variants - - - ", 3);
 			Sequences sequencesBenTest = new Sequences(varBenig.test, acceptorP);
-			Log.add("Number of benign test sequences for " + (acceptorP? "acceptor" : "donor") + " site: " + sequencesPathoTest.size(), 3);
+			Log.add("Number of benign test sequences for " + (acceptorP? "acceptor" : "donor") + " site: " + sequencesBenTest.size(), 3);
 			
 			// write benign results to file
 			String standardResultsBenign = getResultsTable(sequencesBenTest, modelStd, false);

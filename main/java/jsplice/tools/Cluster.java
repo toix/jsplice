@@ -8,6 +8,7 @@ import java.util.Collections;
 
 import jsplice.data.Config;
 import jsplice.data.Pattern;
+import jsplice.exception.Log;
 
 /**
  * @author Tobias Gresser (gresserT@gmail.com)
@@ -27,6 +28,9 @@ public class Cluster {
 	
 	/**
 	 * 
+	 * @param patternP
+	 * @param quantityAbsP
+	 * @param quantityConditionP
 	 */
 	public Cluster(String patternP, int quantityAbsP, int quantityConditionP) {
 		add(patternP, quantityAbsP, quantityConditionP);
@@ -35,7 +39,8 @@ public class Cluster {
 	}
 	
 	/**
-	 * @param patternHighest
+	 * 
+	 * @param patternP
 	 */
 	public Cluster(Pattern patternP) {
 		add(patternP);
@@ -159,9 +164,10 @@ public class Cluster {
 //			System.out.println(Functions.arrayToString(probability[l], 2));
 			for (int b = 0; b < numberOfBases; b++) {
 				double error = (4.0 - 1) / (2 * Math.log(2) * (sum[l]-2));	// TODO check calculation
-				double probability = count[l][b] / sum[l];
+				double probability = countWeighted[l][b] / sumWeighted[l];
 				weightMatrix[l][b] = 2.0 - (-Math.log(probability) / Math.log(2) + error);
 			}
+			Log.add(Functions.arrayToString(weightMatrix[l], 1), 2);
 		}
 		InformationCore = getInformation(getPattern());
 		// Debug
@@ -213,10 +219,12 @@ public class Cluster {
 	 * @param patternP
 	 */
 	public void addQuantity(String patternP){
-		for (int p = 0; p < pattern.size(); p++) {
+		boolean added = false;
+		for (int p = 0; !added; p++) {
 			String patternCurrent = pattern.get(p).pattern;
 			if (patternP.contains(patternCurrent)) {
 				pattern.get(p).quantityUnique++;
+				added = true;
 			}
 		}
 	}

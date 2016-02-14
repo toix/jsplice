@@ -31,6 +31,7 @@ public class Model {
 	 */
 	public static final int numberOfBases = Functions.bases.length();
 	private HashMap<String, Cluster> clusterHash;
+	private HashMap<String, Cluster> clusterHashBad;
 	/**
 	 * The probability of the bases at each position relative to the junction
 	 */
@@ -51,7 +52,6 @@ public class Model {
 	 * 
 	 */
 	Sequences sequences;
-
 	/**
 	 * Constructor without filters
 	 * 
@@ -66,29 +66,9 @@ public class Model {
 		}
 		this.sequences = new Sequences(variantsP, acceptorP);
 		weightMatrix = calculateMatrix();
-		clusterHash = findPattern(variantsP, acceptorP);
+		clusterHash = findPattern(variantsP, acceptorP, true);
+		clusterHashBad = findPattern(variantsP, acceptorP, false);
 		Log.add("Number of pathogene training sequences for " + (acceptorP? "acceptor" : "donor") + " site: " + sequences.getSequences().size(), 3);
-	}
-
-	/**
-	 * Constructor with filters
-	 * 
-	 * @param variants
-	 * @param acceptor
-	 * @param filtered
-	 *            true -> create the change model
-	 */
-	public Model(Variants variantsP, boolean acceptorP, Model modelStd, Model modelStdOtherSide) {
-		if (variantsP.size() < 1) {
-			throw new IllegalArgumentException("The parameter contains no variants.");
-		}
-		Variants variants = Filter.filterVariantType(variantsP, acceptorP);
-		variants = Filter.extractCrypticVariants(variants, modelStd, modelStdOtherSide, acceptorP, false);
-		// variants = VariantFile.filterActivatingVariants(this.variants, modelStd, true);
-		variants = Filter.filterNonACGT(variants);
-		sequences = new Sequences(variants, acceptorP);
-		weightMatrix = calculateMatrix();
-		clusterHash = findPattern(variantsP, acceptorP);
 	}
 
 	/**
@@ -425,8 +405,10 @@ public class Model {
 			Sequence sequence = sequences.get(s);
 			int junction = sequence.getPositionJunction();
 			if (cluster) {
+				int changeRel = sequence.getPositionChangeRelative();
 				indInfo[s] = getInformation(sequence, junction, reference, true).getTotalInformation()
-						+ sequence.getMaxPatternQty(clusterHash, reference);
+						+ sequence.getMaxPatternQty(clusterHash, reference)
+						- sequence.getMaxPatternQty(clusterHashBad, reference);
 			} else {
 				indInfo[s] = getInformation(sequence, junction, reference, false).getTotalInformation();
 			}
@@ -499,8 +481,8 @@ public class Model {
 	/**
 	 * Find all containing the Variant position and cluster them. 
 	 * TODO sub of merged pattern to non sub important pattern when containing it -> -1% 
-	 * TODO limit cluster merging OR subtract/check quantity of the important cluster from the longer cluster 
-	 * TODO penalty with cluster out of conditional (cryptic) 
+	 * TODO limit cluster merging OR subtract/check quantity of the important cluster from the longer cluster -> ok
+	 * TODO penalty with cluster out of conditional (cryptic) -> +1% ; much more stable
 	 * TODO separate cluster for splice site 
 	 * TODO respect average/median position in cluster
 	 * TODO respect sub-pattern in countClusterInSequences()
@@ -511,7 +493,7 @@ public class Model {
 	 * @param variantsP
 	 * @param acceptorP
 	 */
-	static HashMap<String, Cluster> findPattern(Variants variantsP, boolean acceptorP) {
+	static HashMap<String, Cluster> findPattern(Variants variantsP, boolean acceptorP, boolean reference) {
 		int lengthIntronMax = Config.lengthIntronPatternMax;
 		int distanceJunctionMin = Config.getDistanceClusterMin(acceptorP);
 		int distanceJunctionMax = Config.getDistanceClusterMax();
@@ -532,14 +514,14 @@ public class Model {
 					int to = posChangeAbs + shift;
 					int junction = sequence.getPositionJunction();
 					if (Math.abs(from - junction) > distanceJunctionMin-1 && Math.abs(to - junction) > distanceJunctionMin-1) {
-						String patternRef = sequence.substring(from, to + 1);
+						String patternRef = sequence.substring(from, to + 1, reference);
 						if (!quantityAbs.containsKey(patternRef)) {
 							quantityAbs.put(patternRef, 1);
 						} else {
 							quantityAbs.put(patternRef, quantityAbs.get(patternRef) + 1);
 						}
 						// condition
-						String patternAlt = sequence.substring(from, to + 1, false);
+						String patternAlt = sequence.substring(from, to + 1, !reference);
 						if (!quantityCondition.containsKey(patternAlt)) {
 							quantityCondition.put(patternAlt, 1);
 						} else {
@@ -635,7 +617,15 @@ public class Model {
 				//
 				if (i != j && clusterP.get(j).getPattern().contains(patternMain)) {
 					clusterP.get(i).add(clusterP.get(j));
-					clusterP.remove(j);
+					int mainAbs = clusterP.get(i).getPattern(0).quantityAbs;
+					int subAbs = clusterP.get(j).getPattern(0).quantityAbs;
+					double share = (double) subAbs / mainAbs;
+					if (share > 0.5) {
+						clusterP.get(j).getPattern(0).quantityAbs -= mainAbs;
+						j++;
+					} else {
+						clusterP.remove(j);
+					}
 				} else {
 					j++;
 				}
