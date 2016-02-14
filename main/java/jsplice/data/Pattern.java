@@ -66,4 +66,12 @@ public class Pattern implements Comparable<Pattern>{
 	public boolean contains(Pattern patternP) {
 		return pattern.contains(patternP.pattern);
 	}
+
+	/**
+	 * @param patternP
+	 * @return
+	 */
+	public boolean contains(String patternP) {
+		return pattern.contains(patternP);
+	}
 }

@@ -22,9 +22,8 @@ public class Cluster {
 	private double[][] weightMatrix;
 	private int lengthCluster;
 	private int lengthOverlapMax;
-	private double quantityRelCore;
 	private double InformationCore;
-	private String patternCore;
+	private Pattern patternCore;
 	
 	/**
 	 * 
@@ -34,8 +33,7 @@ public class Cluster {
 	 */
 	public Cluster(String patternP, int quantityAbsP, int quantityConditionP) {
 		add(patternP, quantityAbsP, quantityConditionP);
-		this.patternCore = getPattern(0).pattern;
-		this.quantityRelCore = getPattern(0).getQuantityRelative();
+		this.patternCore = getPattern(0);
 	}
 	
 	/**
@@ -44,8 +42,7 @@ public class Cluster {
 	 */
 	public Cluster(Pattern patternP) {
 		add(patternP);
-		this.patternCore = getPattern(0).pattern;
-		this.quantityRelCore = getPattern(0).getQuantityRelative();
+		this.patternCore = patternP;
 	}
 
 	/* (non-Javadoc)
@@ -53,15 +50,15 @@ public class Cluster {
 	 */
 	@Override
 	public String toString() {
-		return "\n" + getPattern() + ", " + quantityRelCore + ":\n" + pattern + ",\n sub: " + patternSub;
+		return "\n" + getPatternCore() + ", " + getPatternCore().getQuantityRelative() + ":\n" + pattern + ",\n sub: " + patternSub;
 	}
 	
-	public String getPattern() {
+	public Pattern getPatternCore() {
 		return patternCore;
 	}
 	
 	public double getQuantityRelCore() {
-		return quantityRelCore;
+		return getPatternCore().getQuantityRelative();
 	}
 
 	public double getQuantityAbs() {
@@ -94,7 +91,12 @@ public class Cluster {
 			success &= add(clusterP.getPattern(c).pattern, clusterP.getPattern(c).quantityAbs, clusterP.getPattern(c).quantityCon);
 		}
 		for (int c = 0; c < clusterP.sizeSub(); c++) {
-			success &= addSub(clusterP.getPatternSub(c).pattern, clusterP.getPatternSub(c).quantityAbs, clusterP.getPatternSub(c).quantityCon);
+			Pattern sub = clusterP.getPatternSub(c);
+			if (sub.contains(getPatternCore())) {
+				success &= add(clusterP.getPatternSub(c).pattern, clusterP.getPatternSub(c).quantityAbs, clusterP.getPatternSub(c).quantityCon);
+			} else {
+				success &= addSub(clusterP.getPatternSub(c).pattern, clusterP.getPatternSub(c).quantityAbs, clusterP.getPatternSub(c).quantityCon);
+			}
 		}
 		return success;
 	}
@@ -121,7 +123,7 @@ public class Cluster {
 
 	public double[][] calculateInformationMatrix(){
 		// count quantities by position
-		int lengthPattern = getPattern().length();
+		int lengthPattern = getPatternCore().length();
 		lengthOverlapMax = Config.lengthIntronPatternMax - lengthPattern;
 		lengthCluster = lengthOverlapMax + lengthPattern + lengthOverlapMax;
 		int numberOfBases = Functions.bases.length();
@@ -129,7 +131,7 @@ public class Cluster {
 		int[] sum = new int[lengthCluster];
 		for (int i = 0; i < pattern.size(); i++) {
 			String patternEntry = getPattern(i).pattern;
-			int align = patternEntry.indexOf(getPattern());
+			int align = patternEntry.indexOf(getPatternCore().pattern);
 //			System.out.println(patternEntry + "\t " + getPattern());
 			double quantityUnique = getPattern(i).quantityUnique;
 			for (int lp = 0, lm = lengthOverlapMax - align; lp < patternEntry.length(); lp++, lm++) {
@@ -150,7 +152,7 @@ public class Cluster {
 		double[] sumWeighted = new double[lengthCluster];
 		for (int i = 0; i < pattern.size(); i++) {
 			String patternEntry = getPattern(i).pattern;
-			int align = patternEntry.indexOf(getPattern());
+			int align = patternEntry.indexOf(getPatternCore().pattern);
 			double quantityRelativeLog = Math.log(getPattern(i).getQuantityRelative()) / Math.log(2);
 			for (int lp = 0, lm = lengthOverlapMax - align; lp < patternEntry.length(); lp++, lm++) {
 				int baseIdx = Functions.mapNumber.get(patternEntry.charAt(lp));
@@ -164,12 +166,12 @@ public class Cluster {
 //			System.out.println(Functions.arrayToString(probability[l], 2));
 			for (int b = 0; b < numberOfBases; b++) {
 				double error = (4.0 - 1) / (2 * Math.log(2) * (sum[l]-2));	// TODO check calculation
-				double probability = countWeighted[l][b] / sumWeighted[l];
+				double probability = count[l][b] / sum[l];
 				weightMatrix[l][b] = 2.0 - (-Math.log(probability) / Math.log(2) + error);
 			}
-			Log.add(Functions.arrayToString(weightMatrix[l], 1), 2);
+//			Log.add(Functions.arrayToString(weightMatrix[l], 1), 2);
 		}
-		InformationCore = getInformation(getPattern());
+		InformationCore = getInformation(getPatternCore().pattern);
 		// Debug
 //		if (getPattern().equals("CAAT")) {
 //			System.out.println(toString());
@@ -190,6 +192,7 @@ public class Cluster {
 	 * @return
 	 */
 	public double getInformation(String patternP) {
+		String patternCore = getPatternCore().pattern;
 		if (weightMatrix == null) {
 			calculateInformationMatrix();
 		}
@@ -198,19 +201,19 @@ public class Cluster {
 					+ ") has to be equal or bigger than the length of this instance (" + lengthCluster + ").");
 		}
 		int matrixStart = 0;
-		if (getPattern().contains(patternP)) {
-			matrixStart = lengthOverlapMax + getPattern().indexOf(patternP);
-		} else if (patternP.contains(getPattern())) {
-			matrixStart = lengthOverlapMax - patternP.indexOf(getPattern());
+		if (getPatternCore().contains(patternP)) {
+			matrixStart = lengthOverlapMax + patternCore.indexOf(patternP);
+		} else if (patternP.contains(patternCore)) {
+			matrixStart = lengthOverlapMax - patternP.indexOf(patternCore);
 		} else {
-			System.out.println("Bad pattern: " + patternP + " for cluster " + getPattern());
+			System.out.println("Bad pattern: " + patternP + " for cluster " + getPatternCore());
 		}
 		double[] individualInformation = Functions.getInitializedDoubleArray(patternP.length());
 		for (int l1 = 0, l2 = matrixStart; l1 < patternP.length(); l1++, l2++) {
 			int baseNumber = Functions.mapNumber.get(patternP.charAt(l1));
 			individualInformation[l1] = weightMatrix[l2][baseNumber];
 		}
-		return Functions.sum(individualInformation);// * Math.log(quantityRelCore) / Math.log(2);
+		return Functions.sum(individualInformation);// * Math.log(getPatternCore().getQuantityRelative()) / Math.log(2);
 	}
 	
 	/**

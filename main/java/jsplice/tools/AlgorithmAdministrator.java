@@ -32,7 +32,7 @@ public class AlgorithmAdministrator {
 //		Variants variantsPathogeneNonCry = Filter.extractCrypticVariants(variantsPathogene, modelStdAcc, modelStdDon, false);
 //		variantsPathogene = VariantFile.concat(Filter.filterActivatingVariants(variantsPathogene, modelStdAcc, true), Filter.filterActivatingVariants(variantsPathogene, modelStdDon, true));
 		
-		folder = "results/pattern0214/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
+		folder = Config.folder;
 		crossValidate(variantsPathogene, variantsBenign, acceptor, folder);
 		
 		

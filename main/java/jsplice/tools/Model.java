@@ -407,8 +407,8 @@ public class Model {
 			if (cluster) {
 				int changeRel = sequence.getPositionChangeRelative();
 				indInfo[s] = getInformation(sequence, junction, reference, true).getTotalInformation()
-						+ sequence.getMaxPatternQty(clusterHash, reference)
-						- sequence.getMaxPatternQty(clusterHashBad, reference);
+						+ sequence.getMaxPatternQty(clusterHash, reference);
+//						- sequence.getMaxPatternQty(clusterHashBad, reference);
 			} else {
 				indInfo[s] = getInformation(sequence, junction, reference, false).getTotalInformation();
 			}
@@ -581,20 +581,18 @@ public class Model {
 		ArrayList<Cluster> cluster = new ArrayList<Cluster>();
 		Pattern patternBest = findHighestPattern(patternP);
 		while (patternBest.getQuantityRelative() > limit) {
-			if (patternBest.getQuantityRelative() > limit) {
-				Cluster clusterNew = new Cluster(patternBest);
-				cluster.add(clusterNew);
-				patternP.remove(patternBest);
-				for (int p = 0; p < patternP.size(); p++) {
-					Pattern patternCurrent = patternP.get(p);
-					if (patternBest.contains(patternCurrent)) {
-						clusterNew.addSub(patternCurrent);
-						double percentage = (double) patternCurrent.quantityAbs / patternBest.quantityAbs;
-						if (percentage > 0.5) {
-							patternP.remove(patternCurrent);
-						} else {
-							patternCurrent.quantityAbs -= patternBest.quantityAbs;
-						}
+			Cluster clusterNew = new Cluster(patternBest);
+			cluster.add(clusterNew);
+			patternP.remove(patternBest);
+			for (int p = 0; p < patternP.size(); p++) {
+				Pattern patternCurrent = patternP.get(p);
+				if (patternBest.contains(patternCurrent)) {
+					clusterNew.addSub(patternCurrent);
+					double share = (double) patternCurrent.quantityAbs / patternBest.quantityAbs;
+					if (share > 0.5) {
+						patternP.remove(patternCurrent);
+					} else {
+						patternCurrent.quantityAbs -= patternBest.quantityAbs;
 					}
 				}
 			}
@@ -612,10 +610,10 @@ public class Model {
 	 */
 	private static ArrayList<Cluster> mergeCluster(ArrayList<Cluster> clusterP) {
 		for (int i = 0; i < clusterP.size(); i++) {
-			String patternMain = clusterP.get(i).getPattern();
+			Pattern patternMain = clusterP.get(i).getPatternCore();
 			for (int j = i + 1; j < clusterP.size();) {
 				//
-				if (i != j && clusterP.get(j).getPattern().contains(patternMain)) {
+				if (i != j && clusterP.get(j).getPatternCore().contains(patternMain)) {
 					clusterP.get(i).add(clusterP.get(j));
 					int mainAbs = clusterP.get(i).getPattern(0).quantityAbs;
 					int subAbs = clusterP.get(j).getPattern(0).quantityAbs;
@@ -645,13 +643,13 @@ public class Model {
 		int lengthIntronMax = Config.lengthIntronPatternMax;
 		for (int c = 0; c < cluster.size(); c++) {
 			cluster.get(c).sortPattern();
-			String patternCluster = cluster.get(c).getPattern();
+			Pattern patternCluster = cluster.get(c).getPatternCore();
 			for (int v = 0; v < variants.size(); v++) {
 				int posChange = variants.get(v).getSequence().getPositionChange();
 				int min = posChange - lengthIntronMax + 1;
 				int max = posChange + lengthIntronMax - 1;
 				String sequence = variants.get(v).getSequence().substring(min, max);
-				if (sequence.contains(patternCluster)) {
+				if (sequence.contains(patternCluster.pattern)) {
 					cluster.get(c).addQuantity(sequence);
 				}
 			}

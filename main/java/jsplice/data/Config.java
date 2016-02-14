@@ -16,8 +16,6 @@ public class Config {
 	private static String vcfFileName = "../data/bowtie.vcf";
 	private static String chrFileNames = "../data/chromFa/chr*.fa";
 	private static String refGeneFileName = "../data/RefSeqGenesGRCh37.tsv";
-	private static String logFile = "jsplice.log";
-
 	/**
 	 * Length of the whole sequence used for the algorithm. <br/>
 	 * 2 * sequenceLength defines the length of the training data <br/>
@@ -39,7 +37,9 @@ public class Config {
 	 * true 	-> GRCh38 will be used
 	 */
 	private static boolean useGrch38 = false;
-/**
+	public static String folder = "results/patternAbsTest/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
+	private static String logFile = folder + "jsplice.log";
+	/**
 	 * The maximum length of the pattern for clustering
 	 */
 	public static final int lengthIntronPatternMax = 12;
