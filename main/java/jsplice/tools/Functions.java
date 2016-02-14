@@ -10,7 +10,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.regex.Pattern;
 
 import jsplice.data.Sequence;
 import jsplice.data.Variant;
@@ -62,7 +61,7 @@ public class Functions {
 	 * @return 
 	 */
 	public static boolean isValidDNA(String sequence){
-		if (Pattern.matches("[" + fastaBases + "]*", sequence) && sequence != null) {
+		if (java.util.regex.Pattern.matches("[" + fastaBases + "]*", sequence) && sequence != null) {
 			return true;
 		} else {
 			return false;

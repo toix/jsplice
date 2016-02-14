@@ -5,9 +5,10 @@ package jsplice.tools;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 
 import jsplice.data.Config;
-import jsplice.data.Pattern;
+import jsplice.data.PatternMotif;
 import jsplice.exception.Log;
 
 /**
@@ -16,14 +17,13 @@ import jsplice.exception.Log;
  */
 public class Cluster {
 
-	private ArrayList<Pattern> patternSub = new ArrayList<Pattern>();
-	private ArrayList<Pattern> pattern = new ArrayList<Pattern>();
-	
+	private ArrayList<PatternMotif> pattern = new ArrayList<PatternMotif>();
+	private ArrayList<PatternMotif> patternSub = new ArrayList<PatternMotif>();
 	private double[][] weightMatrix;
 	private int lengthCluster;
 	private int lengthOverlapMax;
 	private double InformationCore;
-	private Pattern patternCore;
+	private PatternMotif patternCore;
 	
 	/**
 	 * 
@@ -40,9 +40,19 @@ public class Cluster {
 	 * 
 	 * @param patternP
 	 */
-	public Cluster(Pattern patternP) {
+	public Cluster(PatternMotif patternP) {
 		add(patternP);
 		this.patternCore = patternP;
+	}
+	
+	public Cluster(Cluster clusterP) {
+		pattern = PatternMotif.clone(clusterP.pattern);
+		patternSub = PatternMotif.clone(clusterP.patternSub);
+		weightMatrix = clusterP.weightMatrix;
+		lengthCluster = clusterP.lengthCluster;
+		lengthOverlapMax = clusterP.lengthOverlapMax;
+		InformationCore = clusterP.InformationCore;
+		this.patternCore = clusterP.getPatternCore();
 	}
 
 	/* (non-Javadoc)
@@ -53,12 +63,8 @@ public class Cluster {
 		return "\n" + getPatternCore() + ":\n" + pattern + ",\n sub: " + patternSub;
 	}
 	
-	public Pattern getPatternCore() {
+	public PatternMotif getPatternCore() {
 		return patternCore;
-	}
-	
-	public double getQuantityRelCore() {
-		return getPatternCore().getQuantityRelative();
 	}
 
 	public double getQuantityAbs() {
@@ -78,11 +84,11 @@ public class Cluster {
 	}
 	
 	public boolean addSub(String patternP, int quantityAbsP, int quantityConditionP) {
-		return this.patternSub.add(new Pattern(patternP, quantityAbsP, quantityConditionP));
+		return this.patternSub.add(new PatternMotif(patternP, quantityAbsP, quantityConditionP));
 	}
 	
 	public boolean add(String patternP, int quantityAbsP, int quantityConditionP){
-		return this.pattern.add(new Pattern(patternP, quantityAbsP, quantityConditionP));
+		return this.pattern.add(new PatternMotif(patternP, quantityAbsP, quantityConditionP));
 	}
 	
 	public boolean add(Cluster clusterP){
@@ -91,7 +97,7 @@ public class Cluster {
 			success &= add(clusterP.getPattern(c).pattern, clusterP.getPattern(c).quantityAbs, clusterP.getPattern(c).quantityCon);
 		}
 		for (int c = 0; c < clusterP.sizeSub(); c++) {
-			Pattern sub = clusterP.getPatternSub(c);
+			PatternMotif sub = clusterP.getPatternSub(c);
 			if (sub.contains(getPatternCore())) {
 				success &= add(clusterP.getPatternSub(c).pattern, clusterP.getPatternSub(c).quantityAbs, clusterP.getPatternSub(c).quantityCon);
 			} else {
@@ -109,11 +115,11 @@ public class Cluster {
 		return patternSub.size();
 	}
 	
-	public Pattern getPattern(int i) {
+	public PatternMotif getPattern(int i) {
 		return pattern.get(i);
 	}
 	
-	public Pattern getPatternSub(int i) {
+	public PatternMotif getPatternSub(int i) {
 		return patternSub.get(i);
 	}
 	
@@ -244,25 +250,39 @@ public class Cluster {
 	/**
 	 * @param patternP
 	 */
-	public boolean add(Pattern patternP) {
-		return pattern.add(patternP);
+	public boolean add(PatternMotif patternP) {
+		return pattern.add(new PatternMotif(patternP));
 	}
 
 	/**
 	 * @param patternP
 	 */
-	public void addSub(Pattern patternP) {
-		patternSub.add(patternP);
+	public void addSub(PatternMotif patternP) {
+		patternSub.add(new PatternMotif(patternP));
 		
 	}
-	
-//	public void addQuantityCondition(String patternP) {
-//		if (pattern.contains(patternP)) {
-//			int idx = pattern.indexOf(patternP);
-//			quantityCondition.set(idx, quantityCondition.get(idx) + 1);
-//		} else if (patternSub.contains(patternP)) {
-//			int idx = patternSub.indexOf(patternP);
-//			quantityConditionSub.set(idx, quantityConditionSub.get(idx) + 1);
-//		}
-//	}
+
+	/**
+	 * @param clusterP
+	 * @return
+	 */
+	public static ArrayList<Cluster> clone(ArrayList<Cluster> list) {
+		ArrayList<Cluster> clone = new ArrayList<Cluster>(list.size());
+	    for(Cluster item: list) {
+	    	clone.add(new Cluster(item));
+	    }
+	    return clone;
+	}
+
+	/**
+	 * @param list
+	 * @return
+	 */
+	public static HashMap<Cluster, Cluster> cloneToMap(ArrayList<Cluster> list) {
+		HashMap<Cluster, Cluster> clone = new HashMap<Cluster, Cluster>(list.size());
+	    for(Cluster item: list) {
+	    	clone.put(item, new Cluster(item));
+	    }
+	    return clone;
+	}
 }

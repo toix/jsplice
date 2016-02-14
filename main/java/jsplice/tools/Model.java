@@ -10,7 +10,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 
 import jsplice.data.Config;
-import jsplice.data.Pattern;
+import jsplice.data.PatternMotif;
 import jsplice.data.RefGene;
 import jsplice.data.Sequence;
 import jsplice.data.Sequences;
@@ -31,7 +31,7 @@ public class Model {
 	 */
 	public static final int numberOfBases = Functions.bases.length();
 	private HashMap<String, Cluster> clusterHash;
-	private HashMap<String, Cluster> clusterHashBad;
+	private HashMap<String, Cluster> clusterHashPatho;
 	/**
 	 * The probability of the bases at each position relative to the junction
 	 */
@@ -67,7 +67,7 @@ public class Model {
 		this.sequences = new Sequences(variantsP, acceptorP);
 		weightMatrix = calculateMatrix();
 		clusterHash = findPattern(variantsP, acceptorP, true);
-		clusterHashBad = findPattern(variantsP, acceptorP, false);
+		clusterHashPatho = findPattern(variantsP, acceptorP, false);
 		Log.add("Number of pathogene training sequences for " + (acceptorP? "acceptor" : "donor") + " site: " + sequences.getSequences().size(), 3);
 	}
 
@@ -406,9 +406,10 @@ public class Model {
 			int junction = sequence.getPositionJunction();
 			if (cluster) {
 				int changeRel = sequence.getPositionChangeRelative();
-				indInfo[s] = getInformation(sequence, junction, reference, true).getTotalInformation()
-						+ sequence.getMaxPatternQty(clusterHash, reference)
-						- sequence.getMaxPatternQty(clusterHashBad, reference);
+				indInfo[s] = 0
+//						+ getInformation(sequence, junction, reference, true).getTotalInformation()
+						+ sequence.getMaxPatternQty(clusterHash, reference);
+//						- sequence.getMaxPatternQty(clusterHashPatho, reference);
 			} else {
 				indInfo[s] = getInformation(sequence, junction, reference, false).getTotalInformation();
 			}
@@ -493,7 +494,7 @@ public class Model {
 	 * @param variantsP
 	 * @param acceptorP
 	 */
-	static HashMap<String, Cluster> findPattern(Variants variantsP, boolean acceptorP, boolean reference) {
+	static HashMap<String, Cluster> findPattern(Variants variantsP, boolean acceptorP, boolean benign) {
 		int lengthIntronMax = Config.lengthIntronPatternMax;
 		int distanceJunctionMin = Config.getDistanceClusterMin(acceptorP);
 		int distanceJunctionMax = Config.getDistanceClusterMax();
@@ -514,14 +515,14 @@ public class Model {
 					int to = posChangeAbs + shift;
 					int junction = sequence.getPositionJunction();
 					if (Math.abs(from - junction) > distanceJunctionMin-1 && Math.abs(to - junction) > distanceJunctionMin-1) {
-						String patternRef = sequence.substring(from, to + 1, reference);
+						String patternRef = sequence.substring(from, to + 1, benign);
 						if (!quantityAbs.containsKey(patternRef)) {
 							quantityAbs.put(patternRef, 1);
 						} else {
 							quantityAbs.put(patternRef, quantityAbs.get(patternRef) + 1);
 						}
 						// condition
-						String patternAlt = sequence.substring(from, to + 1, !reference);
+						String patternAlt = sequence.substring(from, to + 1, !benign);
 						if (!quantityCondition.containsKey(patternAlt)) {
 							quantityCondition.put(patternAlt, 1);
 						} else {
@@ -533,7 +534,7 @@ public class Model {
 			}
 		}
 
-		ArrayList<Pattern> pattern = Model.createPattern(quantityAbs, quantityCondition);
+		ArrayList<PatternMotif> pattern = Model.createPattern(quantityAbs, quantityCondition);
 
 		ArrayList<Cluster> cluster = createCluster(pattern);
 
@@ -542,7 +543,7 @@ public class Model {
 		cluster = countClusterInSequences(cluster, variantsP);
 
 		HashMap<String, Cluster> clusterHash = createHash(cluster);
-		Log.add(cluster, 2);
+		Log.add("Cluster for " + (benign? "benign " : "pathogene ") + (acceptorP? "acceptor" : "donor") + " sequences\n" + cluster, 2);
 		return clusterHash;
 	}
 
@@ -553,8 +554,8 @@ public class Model {
 	 * @param quantityCondition
 	 * @return
 	 */
-	private static ArrayList<Pattern> createPattern(HashMap<String, Integer> quantityAbsolute, HashMap<String, Integer> quantityCondition) {
-		ArrayList<Pattern> pattern = new ArrayList<Pattern>(quantityAbsolute.size());
+	private static ArrayList<PatternMotif> createPattern(HashMap<String, Integer> quantityAbsolute, HashMap<String, Integer> quantityCondition) {
+		ArrayList<PatternMotif> pattern = new ArrayList<PatternMotif>(quantityAbsolute.size());
 		Iterator<Entry<String, Integer>> patternIt = quantityAbsolute.entrySet().iterator();
 		while (patternIt.hasNext()) {
 			Entry<String, Integer> entry = patternIt.next();
@@ -564,7 +565,7 @@ public class Model {
 			if (quantityCondition.containsKey(patternKey)) {
 				quantityCon = quantityCondition.get(patternKey);
 			}
-			Pattern patternNew = new Pattern(patternKey, quantityAbs, quantityCon);
+			PatternMotif patternNew = new PatternMotif(patternKey, quantityAbs, quantityCon);
 			pattern.add(patternNew);
 		}
 		return pattern;
@@ -572,31 +573,34 @@ public class Model {
 
 	/**
 	 * Create cluster for the best pattern and add all sub-pattern containing the cluster pattern
-	 * 
-	 * @param patternP
+	 * @param patternCopy
 	 * @return
 	 */
-	private static ArrayList<Cluster> createCluster(ArrayList<Pattern> patternP) {
+	private static ArrayList<Cluster> createCluster(ArrayList<PatternMotif> patternP) {
 		double limit = 0.9;
+		Integer inte = 0;
+		ArrayList<PatternMotif> patternCopy = PatternMotif.clone(patternP);
+		HashMap<PatternMotif, PatternMotif> patternCopyHash = PatternMotif.cloneToMap(patternCopy);
 		ArrayList<Cluster> cluster = new ArrayList<Cluster>();
-		Pattern patternBest = findHighestPattern(patternP);
+		PatternMotif patternBest = findHighestPattern(patternCopy);
 		while (patternBest.getQuantityRelative() > limit) {
 			Cluster clusterNew = new Cluster(patternBest);
 			cluster.add(clusterNew);
-			patternP.remove(patternBest);
-			for (int p = 0; p < patternP.size(); p++) {
-				Pattern patternCurrent = patternP.get(p);
+			patternCopy.remove(patternBest);
+			for (int p = 0; p < patternCopy.size(); p++) {
+				PatternMotif patternCurrent = patternCopy.get(p);
 				if (patternBest.contains(patternCurrent)) {
-					clusterNew.addSub(patternCurrent);
+					// add the unchanged copy of Pattern
+					clusterNew.addSub(patternCopyHash.get(patternCurrent));
 					double share = (double) patternCurrent.quantityAbs / patternBest.quantityAbs;
 					if (share > 0.5) {
-						patternP.remove(patternCurrent);
+						patternCopy.remove(patternCurrent);
 					} else {
 						patternCurrent.quantityAbs -= patternBest.quantityAbs;
 					}
 				}
 			}
-			patternBest = findHighestPattern(patternP);
+			patternBest = findHighestPattern(patternCopy);
 		}
 		return cluster;
 	}
@@ -605,31 +609,33 @@ public class Model {
 	 * add all cluster as subset of the more important cluster <br>
 	 * if subset cluster contains the substring of the important cluster
 	 * 
-	 * @param clusterP
+	 * @param clusterCopy
 	 * @return
 	 */
 	private static ArrayList<Cluster> mergeCluster(ArrayList<Cluster> clusterP) {
-		for (int i = 0; i < clusterP.size(); i++) {
-			Pattern patternMain = clusterP.get(i).getPatternCore();
-			for (int j = i + 1; j < clusterP.size();) {
+		ArrayList<Cluster> clusterCopy = Cluster.clone(clusterP);
+		HashMap<Cluster, Cluster> clusterCopyMap = Cluster.cloneToMap(clusterCopy);
+		for (int i = 0; i < clusterCopy.size(); i++) {
+			PatternMotif patternMain = clusterCopy.get(i).getPatternCore();
+			for (int j = i + 1; j < clusterCopy.size();) {
 				//
-				if (i != j && clusterP.get(j).getPatternCore().contains(patternMain)) {
-					clusterP.get(i).add(clusterP.get(j));
-					int mainAbs = clusterP.get(i).getPattern(0).quantityAbs;
-					int subAbs = clusterP.get(j).getPattern(0).quantityAbs;
+				if (i != j && clusterCopy.get(j).getPatternCore().contains(patternMain)) {
+					clusterCopy.get(i).add(clusterCopyMap.get(clusterCopy.get(j)));
+					int mainAbs = clusterCopy.get(i).getPattern(0).quantityAbs;
+					int subAbs = clusterCopy.get(j).getPattern(0).quantityAbs;
 					double share = (double) subAbs / mainAbs;
 					if (share > 0.5) {
-						clusterP.get(j).getPattern(0).quantityAbs -= mainAbs;
+						clusterCopy.get(j).getPattern(0).quantityAbs -= mainAbs;
 						j++;
 					} else {
-						clusterP.remove(j);
+						clusterCopy.remove(j);
 					}
 				} else {
 					j++;
 				}
 			}
 		}
-		return clusterP;
+		return clusterCopy;
 	}
 
 	/**
@@ -643,7 +649,7 @@ public class Model {
 		int lengthIntronMax = Config.lengthIntronPatternMax;
 		for (int c = 0; c < cluster.size(); c++) {
 			cluster.get(c).sortPattern();
-			Pattern patternCluster = cluster.get(c).getPatternCore();
+			PatternMotif patternCluster = cluster.get(c).getPatternCore();
 			for (int v = 0; v < variants.size(); v++) {
 				int posChange = variants.get(v).getSequence().getPositionChange();
 				int min = posChange - lengthIntronMax + 1;
@@ -661,11 +667,11 @@ public class Model {
 	 * @param patternP
 	 * @return
 	 */
-	private static Pattern findHighestPattern(ArrayList<Pattern> patternP) {
+	private static PatternMotif findHighestPattern(ArrayList<PatternMotif> patternP) {
 		double valueMax = -1000000000;
-		Pattern patternMax = null;
+		PatternMotif patternMax = null;
 		// crate a cluster for relevant pattern and remove short ones
-		for (Pattern patternCurrent : patternP) {
+		for (PatternMotif patternCurrent : patternP) {
 			// Log.add(patternMax + " < " + patternCurrent.getQuantityRelative() + "\t " + (valueMax <
 			// patternCurrent.getQuantityRelative()));
 			if (valueMax < patternCurrent.getQuantityRelative()) {
