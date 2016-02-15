@@ -239,7 +239,7 @@ public class AlgorithmAdministrator {
 	 * 
 	 */
 	private void crossValidate(Variants variantsPathogene, Variants variantsBenign, boolean acceptorP, String folder) {
-		for (int i = 1; i < 1001; i++) {
+		for (int i = 1; i < 301; i++) {
 			Log.add("\n - - - - - - - - - - - - - - - - - - - - - ", 3);
 			Log.add("cross validation run nr. " + i, 3);
 			Log.writeToFile();

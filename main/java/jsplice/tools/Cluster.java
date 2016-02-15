@@ -9,13 +9,12 @@ import java.util.HashMap;
 
 import jsplice.data.Config;
 import jsplice.data.PatternMotif;
-import jsplice.exception.Log;
 
 /**
  * @author Tobias Gresser (gresserT@gmail.com)
  *
  */
-public class Cluster {
+public class Cluster implements Comparable<Cluster> {
 
 	private ArrayList<PatternMotif> pattern = new ArrayList<PatternMotif>();
 	private ArrayList<PatternMotif> patternSub = new ArrayList<PatternMotif>();
@@ -33,7 +32,7 @@ public class Cluster {
 	 */
 	public Cluster(String patternP, int quantityAbsP, int quantityConditionP) {
 		add(patternP, quantityAbsP, quantityConditionP);
-		this.patternCore = getPattern(0);
+		this.patternCore = new PatternMotif(pattern.get(0));
 	}
 	
 	/**
@@ -42,7 +41,7 @@ public class Cluster {
 	 */
 	public Cluster(PatternMotif patternP) {
 		add(patternP);
-		this.patternCore = patternP;
+		this.patternCore = new PatternMotif(pattern.get(0));
 	}
 	
 	public Cluster(Cluster clusterP) {
@@ -52,7 +51,20 @@ public class Cluster {
 		lengthCluster = clusterP.lengthCluster;
 		lengthOverlapMax = clusterP.lengthOverlapMax;
 		InformationCore = clusterP.InformationCore;
-		this.patternCore = clusterP.getPatternCore();
+		this.patternCore = findPatternCore(clusterP.getPatternCore());
+	}
+
+	/**
+	 * @param pattern2
+	 * @return
+	 */
+	private PatternMotif findPatternCore(PatternMotif patternP) {
+		for (int i = 0; i < pattern.size(); i++) {
+			if (pattern.get(i).equals(patternP)) {
+				return new PatternMotif(pattern.get(i));
+			}
+		}
+		return null;
 	}
 
 	/* (non-Javadoc)
@@ -67,18 +79,18 @@ public class Cluster {
 		return patternCore;
 	}
 
-	public double getQuantityAbs() {
+	public double getQuantityRef() {
 		double sum = 0;
 		for (int i = 0; i < pattern.size(); i++) {
-			sum += getPattern(i).quantityAbs;
+			sum += getPattern(i).quantityRef;
 		}
 		return sum;
 	}
 	
-	public double getQuantityCondition() {
+	public double getQuantityAlt() {
 		double sum = 0;
 		for (int i = 0; i < pattern.size(); i++) {
-			sum += getPattern(i).quantityCon;
+			sum += getPattern(i).quantityAlt;
 		}
 		return sum;
 	}
@@ -94,14 +106,15 @@ public class Cluster {
 	public boolean add(Cluster clusterP){
 		boolean success = true;
 		for (int c = 0; c < clusterP.size(); c++) {
-			success &= add(clusterP.getPattern(c).pattern, clusterP.getPattern(c).quantityAbs, clusterP.getPattern(c).quantityCon);
+			success &= add(clusterP.getPattern(c).pattern, clusterP.getPattern(c).quantityRef, clusterP.getPattern(c).quantityAlt);
 		}
 		for (int c = 0; c < clusterP.sizeSub(); c++) {
 			PatternMotif sub = clusterP.getPatternSub(c);
-			if (sub.contains(getPatternCore())) {
-				success &= add(clusterP.getPatternSub(c).pattern, clusterP.getPatternSub(c).quantityAbs, clusterP.getPatternSub(c).quantityCon);
+			double limit = Config.quantityRelLimit;
+			if (sub.contains(getPatternCore()) && sub.getQuantityRelative() > limit) {
+				success &= add(clusterP.getPatternSub(c).pattern, clusterP.getPatternSub(c).quantityRef, clusterP.getPatternSub(c).quantityAlt);
 			} else {
-				success &= addSub(clusterP.getPatternSub(c).pattern, clusterP.getPatternSub(c).quantityAbs, clusterP.getPatternSub(c).quantityCon);
+				success &= addSub(clusterP.getPatternSub(c).pattern, clusterP.getPatternSub(c).quantityRef, clusterP.getPatternSub(c).quantityAlt);
 			}
 		}
 		return success;
@@ -139,7 +152,7 @@ public class Cluster {
 			String patternEntry = getPattern(i).pattern;
 			int align = patternEntry.indexOf(getPatternCore().pattern);
 //			System.out.println(patternEntry + "\t " + getPattern());
-			double quantityUnique = getPattern(i).quantityUnique;
+			double quantityUnique = getPattern(i).quantityBen;
 			for (int lp = 0, lm = lengthOverlapMax - align; lp < patternEntry.length(); lp++, lm++) {
 				int baseIdx = Functions.mapNumber.get(patternEntry.charAt(lp));
 //				System.out.println("lm: " + lm + "\t idx: " + baseIdx);
@@ -219,20 +232,34 @@ public class Cluster {
 			int baseNumber = Functions.mapNumber.get(patternP.charAt(l1));
 			individualInformation[l1] = weightMatrix[l2][baseNumber];
 		}
-		return Functions.sum(individualInformation);// * Math.log(getPatternCore().getQuantityRelative()) / Math.log(2);
+//		return Functions.sum(individualInformation);
+//		return Functions.sum(individualInformation) * Math.log(getPatternCore().getQuantityRelative()) / Math.log(2);
+		return Functions.sum(individualInformation) * Math.log(getQuantityBenign()) / Math.log(2);
 	}
 	
+	/**
+	 * @return
+	 */
+	public int getQuantityBenign() {
+		int quantity = 0;
+		for (PatternMotif patternCurrent : pattern) {
+			quantity += patternCurrent.quantityBen;
+		}
+		return quantity;
+	}
+
 	/**
 	 * find the longest pattern in the sorted cluster
 	 * contains(String) will sort
 	 * @param patternP
 	 */
-	public boolean addQuantity(String patternP){
+	public boolean addQuantityBen(String patternP){
 		boolean added = false;
 		for (int p = 0; p < pattern.size() && !added; p++) {
 			String patternCurrent = pattern.get(p).pattern;
 			if (patternP.contains(patternCurrent)) {
-				pattern.get(p).quantityUnique++;
+				pattern.get(p).quantityBen++;
+				getPatternCore().quantityBen++;
 				added = true;
 			}
 		}
@@ -251,15 +278,25 @@ public class Cluster {
 	 * @param patternP
 	 */
 	public boolean add(PatternMotif patternP) {
-		return pattern.add(new PatternMotif(patternP));
+		return pattern.add(patternP);
 	}
 
 	/**
 	 * @param patternP
 	 */
 	public void addSub(PatternMotif patternP) {
-		patternSub.add(new PatternMotif(patternP));
+		patternSub.add(patternP);
 		
+	}
+	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public int compareTo(Cluster clusterP) {
+		int quantityBenDelta = Integer.compare(clusterP.patternCore.quantityBen, patternCore.quantityBen);
+		int quantityRelDelta = Double.compare(clusterP.patternCore.getQuantityRelative(), patternCore.getQuantityRelative());
+		return quantityBenDelta != 0 ? quantityBenDelta : quantityRelDelta;
 	}
 
 	/**

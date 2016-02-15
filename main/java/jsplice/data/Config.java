@@ -37,8 +37,9 @@ public class Config {
 	 * true 	-> GRCh38 will be used
 	 */
 	private static boolean useGrch38 = false;
-	public static String folder = "results/patternAbs/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
+	public static String folder = "results/patternBotBen/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
 	private static String logFile = folder + "jsplice.log";
+	public static final double quantityRelLimit = 0.9;
 	/**
 	 * The maximum length of the pattern for clustering
 	 */
@@ -49,7 +50,7 @@ public class Config {
 //	private static double thresholdAltRef = 2;
 	public static final int distanceClusterMinAcceptor = 4;
 	public static final int distanceClusterMinDonor = 6;
-	public static final int distanceClusterMax = 40;
+	public static final int distanceClusterMax = 60;
 	
 	public static final String[] chromosomeNames = { "1", "2", "3", "4", "5",
 		"6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17",

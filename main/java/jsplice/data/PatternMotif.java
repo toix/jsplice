@@ -14,30 +14,31 @@ import java.util.List;
 public class PatternMotif implements Comparable<PatternMotif>{
 
 	public String pattern;
-	public int quantityAbs;
-	public int quantityCon;
-	public int quantityUnique;
+	public int quantityRef;
+	public int quantityAlt;
+	public int quantityBen;
+	public int quantityPat;
 	
 	/**
 	 * 
 	 */
 	public PatternMotif(String patternP, int quantityAbsP, int quantityConP) {
 		this.pattern = patternP;
-		this.quantityAbs = quantityAbsP;
-		this.quantityCon = quantityConP;
+		this.quantityRef = quantityAbsP;
+		this.quantityAlt = quantityConP;
 	}
 	
 	public PatternMotif(PatternMotif patternP) {
 		this.pattern = patternP.pattern;
-		this.quantityAbs = patternP.quantityAbs;
-		this.quantityCon = patternP.quantityCon;
+		this.quantityRef = patternP.quantityRef;
+		this.quantityAlt = patternP.quantityAlt;
 	}
 	/* (non-Javadoc)
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
 	public String toString() {
-		return pattern + " " + quantityUnique + " " + getQuantityRelative();
+		return pattern + " " + quantityBen + " " + getQuantityRelative();
 	}
 	
 	public boolean equals(PatternMotif patternP) {
@@ -65,7 +66,7 @@ public class PatternMotif implements Comparable<PatternMotif>{
 	}
 	
 	public double getQuantityRelative() {
-		return (quantityAbs - 1) / (quantityCon + 1);
+		return (quantityRef - 1) / (quantityAlt + 1);
 	}
 
 	/**
