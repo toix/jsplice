@@ -233,8 +233,8 @@ public class Cluster implements Comparable<Cluster> {
 			individualInformation[l1] = weightMatrix[l2][baseNumber];
 		}
 //		return Functions.sum(individualInformation);
-//		return Functions.sum(individualInformation) * Math.log(getPatternCore().getQuantityRelative()) / Math.log(2);
-		return Functions.sum(individualInformation) * Math.log(getQuantityBenign()) / Math.log(2);
+		return Functions.sum(individualInformation) * Math.log(getPatternCore().getQuantityRelative()) / Math.log(2);
+//		return Functions.sum(individualInformation) * Math.log(getQuantityBenign()) / Math.log(2);
 	}
 	
 	/**

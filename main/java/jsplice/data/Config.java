@@ -37,9 +37,9 @@ public class Config {
 	 * true 	-> GRCh38 will be used
 	 */
 	private static boolean useGrch38 = false;
-	public static String folder = "results/patternBotBen/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
+	public static String folder = "results/patternTest/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
 	private static String logFile = folder + "jsplice.log";
-	public static final double quantityRelLimit = 0.9;
+	public static final double quantityRelLimit = 1.1;
 	/**
 	 * The maximum length of the pattern for clustering
 	 */

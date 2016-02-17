@@ -66,7 +66,7 @@ public class PatternMotif implements Comparable<PatternMotif>{
 	}
 	
 	public double getQuantityRelative() {
-		return (quantityRef - 1) / (quantityAlt + 1);
+		return (double) quantityRef / (quantityAlt + 1);
 	}
 
 	/**

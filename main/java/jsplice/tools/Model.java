@@ -21,6 +21,8 @@ import jsplice.io.Variants;
 
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 
+import com.google.common.io.PatternFilenameFilter;
+
 /**
  * @author Tobias Gresser (gresserT@gmail.com)
  *
@@ -506,7 +508,6 @@ public class Model {
 		HashMap<String, Integer> quantityRef = new HashMap<String, Integer>();
 		HashMap<String, Integer> quantityAlt = new HashMap<String, Integer>();
 		int numOfPattern[] = Functions.getInitializedIntArray(lengthIntronMax + 1);
-		Log.add("Creating cluster with " + variantsP.size() + (acceptorP ? " acceptor" : " donor") + " variants.", 3);
 		for (int i = 0; i < variantsP.size(); i++) {
 			Sequence sequence = variantsP.get(i).getSequence();
 			int posChangeAbs = sequence.getPositionChange();
@@ -536,19 +537,20 @@ public class Model {
 			}
 		}
 		
-//		Log.add("Ref: " + quantityRef);
-//		Log.add("Alt: " + quantityAlt);
+		Log.add("Ref: " + quantityRef, 2);
+		Log.add("Alt: " + quantityAlt, 2);
 
 		ArrayList<PatternMotif> pattern = Model.createPattern(quantityRef, quantityAlt);
-//		Log.add("pattern: " + pattern);
+//		Log.add("pattern: " + pattern, 2);
 		ArrayList<Cluster> cluster = createCluster(pattern);
-//		Log.add("cluster: " + cluster);
-		cluster = mergeCluster(cluster);
-//		Log.add("merged: " + cluster);
+//		Log.add("cluster: " + cluster, 2);
+		cluster = createClusterCore(cluster);
+//		Log.add("merged: " + cluster, 2);
 		cluster = countClusterInSequences(cluster, variantsP);
-//		Log.add("Ben count: " + cluster);
+//		Log.add("Ben count: " + cluster, 2);
 		HashMap<String, Cluster> clusterHash = createHash(cluster);
-		Log.add("Cluster for " + (benign? "benign " : "pathogene ") + (acceptorP? "acceptor" : "donor") + " sequences\n" + cluster, 2);
+		Log.add("Created cluster with " + variantsP.size() + " variants for " + (benign? "benign " : "pathogene ") + (acceptorP? "acceptor" : "donor") + " sequences", 3);
+		Log.add(cluster, 2);
 		return clusterHash;
 	}
 
@@ -577,6 +579,7 @@ public class Model {
 	}
 
 	/**
+	 * TODO share prüfen
 	 * Create cluster for the best pattern and add all sub-pattern containing the cluster pattern
 	 * @param patternCopy
 	 * @return
@@ -586,25 +589,28 @@ public class Model {
 		ArrayList<PatternMotif> patternCopy = PatternMotif.clone(patternP);
 		HashMap<PatternMotif, PatternMotif> patternCopyHash = PatternMotif.cloneToMap(patternCopy);
 		ArrayList<Cluster> cluster = new ArrayList<Cluster>();
-		PatternMotif patternBest = findHighestPattern(patternCopy);
-		while (patternBest.getQuantityRelative() > limit) {
-			Cluster clusterNew = new Cluster(patternBest);
+		PatternMotif patternHightest = findHighestPattern(patternCopy);
+		while (patternHightest.getQuantityRelative() > limit) {
+			PatternMotif patternMain = patternCopyHash.get(patternHightest);
+			Cluster clusterNew = new Cluster(patternMain);
 			cluster.add(clusterNew);
-			patternCopy.remove(patternBest);
+			patternCopy.remove(patternHightest);
 			for (int p = 0; p < patternCopy.size(); p++) {
 				PatternMotif patternCurrent = patternCopy.get(p);
-				if (patternBest.contains(patternCurrent)) {
+				if (patternMain.contains(patternCurrent)) {
 					// add the unchanged copy of Pattern
 					clusterNew.addSub(patternCopyHash.get(patternCurrent));
-					double share = (double) patternCurrent.quantityRef / patternBest.quantityRef;
-					if (share > 0.5) {
+					int mainAbs = patternMain.quantityRef;
+					int subAbs = patternCurrent.quantityRef;
+					if ((double) subAbs / mainAbs < 2) {
 						patternCopy.remove(patternCurrent);
 					} else {
-						patternCurrent.quantityRef -= patternBest.quantityRef;
+						patternCurrent.quantityRef -= patternHightest.quantityRef;
+						p++;
 					}
 				}
 			}
-			patternBest = findHighestPattern(patternCopy);
+			patternHightest = findHighestPattern(patternCopy);
 		}
 		return cluster;
 	}
@@ -636,30 +642,30 @@ public class Model {
 	 * @param clusterCopy
 	 * @return
 	 */
-	private static ArrayList<Cluster> mergeCluster(ArrayList<Cluster> clusterP) {
+	private static ArrayList<Cluster> createClusterCore(ArrayList<Cluster> clusterP) {
 		ArrayList<Cluster> clusterCopy = Cluster.clone(clusterP);
-		HashMap<Cluster, Cluster> clusterCopyMap = Cluster.cloneToMap(clusterCopy);
-		for (int i = 0; i < clusterCopy.size(); i++) {
-			Collections.sort(clusterCopy);
-			Cluster patternMain = clusterCopyMap.get(clusterCopy.get(i));
-			clusterCopy.set(i, patternMain);
-			for (int j = i + 1; j < clusterCopy.size();) {
-				Cluster clusterCurrent = clusterCopyMap.get(clusterCopy.get(j));
-				if (clusterCurrent.getPatternCore().contains(patternMain.getPatternCore())) {
-					clusterCopy.get(i).add(clusterCurrent);
-					int mainAbs = clusterCopy.get(i).getPatternCore().quantityRef;
-					int subAbs = clusterCopy.get(j).getPatternCore().quantityRef;
-					double subRel = clusterCopy.get(i).getPatternCore().getQuantityRelative();
-					double share = (double) subAbs / mainAbs;
+		for (int len = Config.lengthIntronPatternMax - 1; len > 1; len--) {
+			for (int m = 0; m < clusterCopy.size(); m++) {
+//				Collections.sort(clusterCopy);
+				Cluster clusterMain = clusterCopy.get(m);
+				clusterCopy.set(m, clusterMain);
+				for (int c = m + 1; c < clusterCopy.size();) {
+					Cluster clusterCurrent = clusterCopy.get(c);
+					boolean contains = clusterCurrent.getPatternCore().contains(clusterMain.getPatternCore());
+					int absMain = clusterCopy.get(m).getPatternCore().quantityRef;
+					int absSub = clusterCopy.get(c).getPatternCore().quantityRef;
+					boolean quantityOk = 0.5 * absSub < absMain;
+					int lenMain = clusterCopy.get(m).getPatternCore().pattern.length();
+					int lenSub = clusterCopy.get(c).getPatternCore().pattern.length();
+					boolean lengthOk = lenMain == len && lenSub == len + 1;
+					double subRel = clusterCopy.get(m).getPatternCore().getQuantityRelative();
 					double limit = Config.quantityRelLimit;
-					if (share > 0.5 && subRel > limit) {
-						clusterCopy.get(j).getPatternCore().quantityRef -= mainAbs;
-						j++;
+					if (contains && quantityOk && lengthOk) {
+						clusterCopy.get(m).add(clusterCurrent);
+						clusterCopy.remove(c);
 					} else {
-						clusterCopy.remove(j);
+						c++;
 					}
-				} else {
-					j++;
 				}
 			}
 		}

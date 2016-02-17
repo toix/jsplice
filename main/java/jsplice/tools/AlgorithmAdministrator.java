@@ -23,10 +23,8 @@ public class AlgorithmAdministrator {
 		String folder = "results/";
 		printAllVariants(variantsPathogene, folder);
 		
-		// standard model pathogene
-		Log.add("\n - - - pathogene standard model - - - ", 3);
-		Model modelStdAcc = new Model(variantsPathogene, acceptor);
-		Model modelStdDon = new Model(variantsPathogene, !acceptor);
+//		Model modelStdAcc = new Model(variantsPathogene, acceptor);
+//		Model modelStdDon = new Model(variantsPathogene, !acceptor);
 		
 		// Filter
 //		Variants variantsPathogeneNonCry = Filter.extractCrypticVariants(variantsPathogene, modelStdAcc, modelStdDon, false);
