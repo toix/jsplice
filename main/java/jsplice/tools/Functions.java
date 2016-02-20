@@ -194,6 +194,16 @@ public class Functions {
 		return arrayString;
 	}
 	
+	public static String arrayToString(int[] correlationCluster){
+      double rounded = round(correlationCluster[0], 4);
+      String arrayString = new String(limitNumber(rounded) +"");
+      for (int i = 1; i < correlationCluster.length; i++) {
+          rounded = round(correlationCluster[i], 4);
+          arrayString += "\t " + limitNumber(rounded);
+      }
+      return arrayString;
+  }
+	
 	/**
 	 * @param number
 	 * @return Number between -999 and 999
@@ -345,5 +355,45 @@ public class Functions {
 	public static int random(int from, int to) {
 		return (int) (Functions.round(Math.random() * (to - from + 1) + from -0.5,0));
 	}
+	
+	public static int countMatchingChar(String str1, String str2) {
+		if (str1.length() != str2.length()) {
+			throw new IllegalArgumentException("Both strings must have same length.");
+		}
+		int count = 0;
+		for (int p = 0; p < str1.length(); p++) {
+			if (str1.charAt(p) == str2.charAt(p)) {
+				count++;
+			}
+		}
+		return count;
+	}
+
+  /**
+   * TODO better -> higher value
+   * @param matrix1
+   * @param matrix2
+   * @return
+   */
+  public static double probabilityMatrixSimilarity(double[][] matrix1, double[][] matrix2) {
+    if (matrix1.length != matrix2.length) {
+      throw new IllegalArgumentException("Both strings must have same length.");
+    }
+    double distance = 0;
+    for (int p = 0; p < matrix1.length; p++) {
+      double distanceSum = 0;
+      if (sum(matrix1[p]) > 0) {
+        for (int b = 0; b < matrix1[p].length; b++) {
+          distanceSum += 1 - Math.abs(matrix1[p][b] - matrix2[p][b]);
+        }
+        // System.out.println(matrix1[p][b] - matrix2[p][b]);
+      }
+      // System.out.println(Functions.arrayToString(matrix1[p], 1));
+//      System.out.println(Functions.arrayToString(matrix2[p], 1));
+//      System.out.println("add: " + distanceSum / matrix1[p].length);
+      distance += distanceSum / matrix1[p].length;
+    }
+    return distance;
+  }
 }
 

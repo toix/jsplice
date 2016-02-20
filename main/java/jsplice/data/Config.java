@@ -31,7 +31,7 @@ public class Config {
 	 * Multiplier by that the training data is longer than the analysis length (sequenceLength) <br/>
 	 * Has to be at least 3
 	 */
-	private static int factor = 4;
+	private static int factor = 5;
 	/**
 	 * false 	-> GRCh37 will be used <br/>
 	 * true 	-> GRCh38 will be used
@@ -40,6 +40,7 @@ public class Config {
 	public static String folder = "results/patternTest/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
 	private static String logFile = folder + "jsplice.log";
 	public static final double quantityRelLimit = 1.1;
+	public static final double ClusterCorrelationLimit = 0.5;
 	/**
 	 * The maximum length of the pattern for clustering
 	 */
@@ -50,7 +51,7 @@ public class Config {
 //	private static double thresholdAltRef = 2;
 	public static final int distanceClusterMinAcceptor = 4;
 	public static final int distanceClusterMinDonor = 6;
-	public static final int distanceClusterMax = 60;
+	public static final int distanceClusterMax = getLengthTrainingIntron() - lengthIntronPatternMax;
 	
 	public static final String[] chromosomeNames = { "1", "2", "3", "4", "5",
 		"6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17",

@@ -68,8 +68,7 @@ public class Log {
 	 * @param message 
 	 */
 	public static void add(Object message){
-		logEntries.add(message.toString());
-		entryPriorities.add(6);
+		add(message.toString(), 6);
 	}
 	
 	/**

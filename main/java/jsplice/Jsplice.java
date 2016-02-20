@@ -69,9 +69,14 @@ public class Jsplice {
         Log.writeToFile();
 		Log.close();
 		} catch (Exception e) {
+		  try {
 			Log.writeToFile();
 			Log.close();
 			e.printStackTrace();
+		  } catch (Exception e2) {
+		    Log.close();
+            e.printStackTrace();
+		  }
 		}
 	}
 }
