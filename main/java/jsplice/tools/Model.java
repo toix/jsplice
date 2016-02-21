@@ -546,7 +546,7 @@ public class Model {
 //    Log.add("Alt: " + quantityAlt, 2);
     ArrayList<PatternMotif> pattern = Model.createPattern(quantityRef, quantityAlt);
     //		Log.add("pattern: " + pattern, 2);
-    ArrayList<Cluster> cluster = createCluster(pattern);
+    ArrayList<Cluster> cluster = createClusterSub(pattern);
     //		Log.add("cluster: " + cluster, 2);
     cluster = createClusterCore(cluster);
     //		Log.add("merged: " + cluster, 2);
@@ -590,7 +590,7 @@ public class Model {
    * @param patternCopy
    * @return
    */
-  private static ArrayList<Cluster> createCluster(ArrayList<PatternMotif> patternP) {
+  private static ArrayList<Cluster> createClusterSub(ArrayList<PatternMotif> patternP) {
     double limit = Config.quantityRelLimit;
     ArrayList<PatternMotif> patternCopy = PatternMotif.clone(patternP);
     HashMap<PatternMotif, PatternMotif> patternCopyHash = PatternMotif.cloneToMap(patternCopy);

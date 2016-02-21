@@ -378,13 +378,12 @@ public class Cluster implements Comparable<Cluster> {
       int baseNumber = Functions.mapNumber.get(patternP.charAt(lp));
       individualInformation[lp] = weightMatrix[lm][baseNumber];
     }
-//    return Functions.sum(individualInformation);
+    return Functions.sum(individualInformation);
 //    return Functions.sum(individualInformation) * Math.log(getPatternCore().getQuantityRelative()) / Math.log(2);
-    return Functions.sum(individualInformation) * Math.log(getPatternCore().quantityBen) / Math.log(2);
+//    return Functions.sum(individualInformation) * Math.log(getPatternCore().quantityBen) / Math.log(2);
   }
 
   /**
-   * TODO return always -1
    * @param cluster1
    * @param cluster2
    * @return shifts to align cluste2 to cluster1
