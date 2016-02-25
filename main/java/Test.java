@@ -21,7 +21,7 @@ public class Test {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		System.out.println(PatternMotif.align("ACT", "CTACA"));
+		System.out.println(PatternMotif.align("CGGC", "GCGGCT"));
 //		System.out.println(PatternMotif.align("Workshop", "workhop"));
 	}
 

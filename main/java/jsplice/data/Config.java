@@ -10,53 +10,57 @@ import com.beust.jcommander.ParameterException;
  */
 public class Config {
 
-	private static Config instance;
-	private static String clinVarFileName = "../data/variant_summary.txt";
-	private static String hgmdFileName = "../data/hgmd.txt";
-	private static String vcfFileName = "../data/bowtie.vcf";
-	private static String chrFileNames = "../data/chromFa/chr*.fa";
-	private static String refGeneFileName = "../data/RefSeqGenesGRCh37.tsv";
-	/**
-	 * Length of the whole sequence used for the algorithm. <br/>
-	 * 2 * sequenceLength defines the length of the training data <br/>
-	 * Has to be even. Is the sum of modelIntronLength and modelExonLength
-	 */
-	private static int lengthModel = 20;
-	/**
-	 * Length of the exonic part of the sequence. <br/>
-	 * sequenceLength - exonLength defines the intron length
-	 */
-	private static int lengthModelExon = 2;
-	/**
-	 * Multiplier by that the training data is longer than the analysis length (sequenceLength) <br/>
-	 * Has to be at least 3
-	 */
-	private static int factor = 5;
-	/**
-	 * false 	-> GRCh37 will be used <br/>
-	 * true 	-> GRCh38 will be used
-	 */
-	private static boolean useGrch38 = false;
-	public static String folder = "results/clusterStd/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
-	private static String logFile = folder + "jsplice.log";
-	public static final double quantityRelLimit = 1.1;
-	public static final double ClusterCorrelationLimit = 0.5;
-	/**
-	 * The maximum length of the pattern for clustering
-	 */
-	public static final int lengthIntronPatternMax = 12;
-	//	/**
-//	 * Threshold for the difference of the sum of the individual information between reference and alternate
-//	 */
-//	private static double thresholdAltRef = 2;
-	public static final int distanceClusterMinAcceptor = 4;
-	public static final int distanceClusterMinDonor = 6;
-	public static final int distanceClusterMax = getLengthTrainingIntron() - lengthIntronPatternMax;
+  private static Config instance;
+  private static String clinVarFileName = "../data/variant_summary.txt";
+  private static String hgmdFileName = "../data/hgmd.txt";
+  private static String vcfFileName = "../data/bowtie.vcf";
+  private static String chrFileNames = "../data/chromFa/chr*.fa";
+  private static String refGeneFileName = "../data/RefSeqGenesGRCh37.tsv";
+  /**
+   * Length of the whole sequence used for the algorithm. <br/>
+   * 2 * sequenceLength defines the length of the training data <br/>
+   * Has to be even. Is the sum of modelIntronLength and modelExonLength
+   */
+  private static int lengthModel = 20;
+  /**
+   * Length of the exonic part of the sequence. <br/>
+   * sequenceLength - exonLength defines the intron length
+   */
+  private static int lengthModelExon = 2;
+  /**
+   * Multiplier by that the training data is longer than the analysis length (sequenceLength) <br/>
+   * Has to be at least 3
+   */
+  private static int factor = 5;
+  /**
+   * false -> GRCh37 will be used <br/>
+   * true -> GRCh38 will be used
+   */
+  private static boolean useGrch38 = false;
+  public static final String[] chromosomeNames = {"1", "2", "3", "4", "5", "6", "7", "8", "9",
+      "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "X", "Y"};
+  public static final double quantityRelLimit = 1;
+  public static final double ClusterCorrelationLimit = 0.5;
+  /**
+   * The maximum length of the pattern for clustering
+   */
+  public static final int lengthIntronPatternMax = 10;
+  // /**
+  // * Threshold for the difference of the sum of the individual information between reference and
+  // alternate
+  // */
+  // private static double thresholdAltRef = 2;
+  public static final int distanceClusterMinAcceptor = 4;
+  public static final int distanceClusterMinDonor = 6;
+  public static final int distanceClusterMax = getLengthTrainingIntron() - lengthIntronPatternMax;
+  public static final boolean multiClusterRel = false;
+  public static final boolean simpleMerging = false;
+  public static final String folder = "results/cluster" + (simpleMerging ? "Spl" : "Cpx")
+      + (multiClusterRel ? "Rel" : "Std") + "/" + Config.getLengthModelIntron() + "+"
+      + Config.getLengthModelExon() + "/";
+  private static String logFile = folder + "jsplice.log";
+  public static final int crossValidationSteps = 1000;
 	
-	public static final String[] chromosomeNames = { "1", "2", "3", "4", "5",
-		"6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17",
-		"18", "19", "20", "21", "22", "X", "Y" };
-
 	/**
 	 * 
 	 * @param clinVarFileName

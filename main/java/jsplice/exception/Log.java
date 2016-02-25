@@ -61,6 +61,7 @@ public class Log {
 	 */
 	public Log() {
 		super();
+		Log.add("Log file: " + Config.getLogFile(), 3);
 	}
 	
 	/**
@@ -110,11 +111,8 @@ public class Log {
 				if (file.exists()){
 					file.delete();
 				}
-				if (file.exists()) {
-					fileExists = true;
-				} else {
-					fileExists = file.createNewFile();
-				}
+				fileExists = file.createNewFile();
+				fileExists = true;
 				title = "\t\t---   jsplice log File   ---";
 				fWriter = new FileWriter(file);
 				file.setReadable(true);

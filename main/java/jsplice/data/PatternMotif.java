@@ -134,7 +134,7 @@ public class PatternMotif implements Comparable<PatternMotif>{
 
   public static int align(String str1, String str2){
     int matchesMax = 0;
-    int posMax = -1;
+    int posMax = Integer.MIN_VALUE;
 //    String str1 = pattern1.pattern;
 //    String str2 = pattern2.pattern;
     for (int pos = str1.length()-1; pos > -str2.length(); pos--) {
@@ -149,8 +149,8 @@ public class PatternMotif implements Comparable<PatternMotif>{
       if (matches > matchesMax) {
         matchesMax = matches;
         posMax = pos;
-      } else if (matches == matchesMax) {
-        Log.add(posMax + " and " + pos + " are possible possitions.", 2);
+      } else if (matches == matchesMax && matches > 0) {
+//        Log.add(posMax + " and " + pos + " are both matching " + matches + " characters.", 2);
       }
     }
     return posMax;

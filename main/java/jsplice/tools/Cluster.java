@@ -94,30 +94,11 @@ public class Cluster implements Comparable<Cluster> {
 //      System.out.println("align: " + align + "\t " + patternEntry);
       // System.out.println(patternEntry + "\t " + getPattern());
       double quantityBen = patternEntry.quantityBen;
-      for (int b = 0, lm = align; b < patternEntry.length(); b++, lm++) {
-        int baseIdx = Functions.mapNumber.get(patternEntry.pattern.charAt(b));
+      for (int l = 0, lm = align; l < patternEntry.length(); l++, lm++) {
+        int baseIdx = Functions.mapNumber.get(patternEntry.pattern.charAt(l));
         // System.out.println("lm: " + lm + "\t idx: " + baseIdx);
         count[lm][baseIdx] += quantityBen;
         sum[lm] += quantityBen;
-      }
-    }
-    // invert count with count sum
-    int[] sumInverted = new int[lengthCluster];
-    int sumMax = sum[lengthOverlapMax + 1];
-    for (int l = 0; l < lengthCluster; l++) {
-      sumInverted[l] = sumMax - sum[l];
-    }
-    // weighted probability
-    double[][] countWeighted = new double[lengthCluster][numberOfBases];
-    double[] sumWeighted = new double[lengthCluster];
-    for (int i = 0; i < pattern.size(); i++) {
-      String patternEntry = getPattern(i).pattern;
-      int align = patternEntry.indexOf(getPatternCore().pattern);
-      double quantityRelativeLog = Math.log(getPattern(i).getQuantityRelative()) / Math.log(2);
-      for (int lp = 0, lm = lengthOverlapMax - align; lp < patternEntry.length(); lp++, lm++) {
-        int baseIdx = Functions.mapNumber.get(patternEntry.charAt(lp));
-        countWeighted[lm][baseIdx] += quantityRelativeLog;
-        sumWeighted[lm] += quantityRelativeLog;
       }
     }
     // divide probability sums through sum and calculate Information Matrix
@@ -127,7 +108,7 @@ public class Cluster implements Comparable<Cluster> {
     for (int l = 0; l < lengthCluster; l++) {
 //      Log.add(Functions.arrayToString(count[l], 2));
       for (int b = 0; b < numberOfBases; b++) {
-        double error = (4.0 - 1) / (2 * Math.log(2) * (sum[l] - 2)); // TODO check calculation
+        double error = (4.0 - 1) / (2 * Math.log(2) * (sum[l] - 1)); // TODO check calculation
         probability[l][b] = count[l][b] / sum[l];
         weightMatrix[l][b] = 2.0 - (-Math.log(probability[l][b]) / Math.log(2) + error);
       }
@@ -139,9 +120,6 @@ public class Cluster implements Comparable<Cluster> {
     if (getPatternCore().equals("ATC")) {
       System.out.println(toString());
       System.out.println("\nprob");
-//      for (int l = 0; l < lengthCluster; l++) {
-//        System.out.println(Functions.arrayToString(countWeighted[l], 2));
-//      }
       System.out.println("\nmatrix");
       for (int l = 0; l < lengthCluster; l++) {
         System.out.println(Functions.arrayToString(weightMatrix[l], 2));
@@ -212,8 +190,11 @@ public class Cluster implements Comparable<Cluster> {
     if (this == clusterP) {
       throw new IllegalArgumentException("Not possible to add cluster to itself.");
     }
-    Log.add("align " + this.getPatternCore() + " to " + clusterP.getPatternCore(), 2);
+//    Log.add("align " + this.getPatternCore() + " to " + clusterP.getPatternCore(), 2);
     int shift = Cluster.align(this, clusterP);
+    if (shift <= Integer.MIN_VALUE) {
+      return false;
+    }
     boolean success = true;
     // add pattern
     for (int c = 0; c < clusterP.size(); c++) {
@@ -359,6 +340,7 @@ public class Cluster implements Comparable<Cluster> {
    * @return
    */
   public double getInformation(String patternP) {
+    boolean multiRel = Config.multiClusterRel;
     if (weightMatrix == null) {
       calculateInformationMatrix();
     }
@@ -378,9 +360,12 @@ public class Cluster implements Comparable<Cluster> {
       int baseNumber = Functions.mapNumber.get(patternP.charAt(lp));
       individualInformation[lp] = weightMatrix[lm][baseNumber];
     }
-    return Functions.sum(individualInformation);
-//    return Functions.sum(individualInformation) * Math.log(getPatternCore().getQuantityRelative()) / Math.log(2);
-//    return Functions.sum(individualInformation) * Math.log(getPatternCore().quantityBen) / Math.log(2);
+//    return Functions.sum(individualInformation) * Math.log(getPatternCore().quantityBen + 1) / Math.log(2);
+    if (multiRel) {
+      return Functions.sum(individualInformation) * Math.log(getPatternCore().getQuantityRelative() + 1) / Math.log(2);
+    } else {
+      return Functions.sum(individualInformation);
+    }
   }
 
   /**
@@ -399,11 +384,11 @@ public class Cluster implements Comparable<Cluster> {
     } else if (patternC1.quantityBen > 0 && patternC2.quantityBen > 0) {
       if (cluster1.weightMatrix == null) {
         cluster1.calculateInformationMatrix();
-        Log.add(cluster1.matrixToString("matrix1"), 2);
+//        Log.add(cluster1.matrixToString("matrix1"), 2);
       }
       if (cluster2.weightMatrix == null) {
         cluster2.calculateInformationMatrix();
-        Log.add(cluster2.matrixToString("matrix2"), 2);
+//        Log.add(cluster2.matrixToString("matrix2"), 2);
       }
       double similarityBest = 0;
       //     String str1 = pattern1.pattern;
@@ -427,7 +412,7 @@ public class Cluster implements Comparable<Cluster> {
         }
       }
     }
-    Log.add("posBest: " + posBest, 2);
+//    Log.add("posBest: " + posBest, 2);
     return posBest;
   }
 

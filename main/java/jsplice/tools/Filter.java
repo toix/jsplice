@@ -476,7 +476,7 @@ public class Filter {
 	}
 
 	/**
-	 * @param variants2
+	 * @param variants
 	 * @return
 	 */
 	public static Variants deleteDuplicateJunctions(Variants variants)  {
