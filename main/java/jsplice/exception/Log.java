@@ -3,10 +3,7 @@
  */
 package jsplice.exception;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
+import java.util.HashMap;
 
 import jsplice.data.Config;
 
@@ -36,158 +33,103 @@ import jsplice.data.Config;
  * @author Tobias Gresser (gresserT@gmail.com)
  */
 public class Log {
-	
-	/**
-	 * The main entries of the Log
-	 */
-	private static ArrayList<String> logEntries = new ArrayList<String>();
-	/**
-	 * Every log entry has a priority
-	 */
-	private static ArrayList<Integer> entryPriorities = new ArrayList<Integer>();
-	/**
-	 * All entries higher or equal to the priority level will be printed
-	 */
-	private static int printLogLevel = 3;
-	/**
-	 * All entries higher or equal to the priority level will be written to the log file
-	 */
-	private static int fileLogLevel = 2;
-	private static boolean fileExists = false;
-	private static FileWriter fWriter = null;
 
-	/**
-	 * 
-	 */
-	public Log() {
-		super();
-		Log.add("Log file: " + Config.getLogFile(), 3);
-	}
-	
-	/**
-	 * Add an error string with priority 6
-	 * @param message 
-	 */
-	public static void add(Object message){
-		add(message.toString(), 6);
-	}
-	
-	/**
-	 * Add an error string
-	 * @param message 
-	 * @param priority int between 1 and 6: <br/>
-	 * 1 Trace, 2 Debug, 3 Info, 4 Warn, 5 Error, 6 Fatal
-	 */
-	public static void add(Object message, int priority){
-		if(priority > 6 || priority < 1)
-			throw new IllegalArgumentException("Priority level has to be between 1 and 6: " + priority);
-		logEntries.add(message.toString());
-		entryPriorities.add(priority);
-	}
+  private static HashMap<Thread, LogThread> logThread = new HashMap<Thread, LogThread>();
+  /**
+   * All entries higher or equal to the priority level will be printed
+   */
+  private static int printLogLevel = 3;
+  /**
+   * All entries higher or equal to the priority level will be written to the log file
+   */
+  private static int fileLogLevel = 2;
 
-	public static String toStringStatic(){
-		String str = "";
-		for (int i = 0; i < logEntries.size(); i++) {
-			if(entryPriorities.get(i) >= printLogLevel)
-			str += logEntries.get(i) + "\n";
-		}
-		return str;
-	}
-	
-	@Override
-	public String toString(){
-		return Log.toStringStatic();
-	}
-	
-	/**
-	 * Write log to File
-	 */
-	public static void writeToFile() {
-		try {
-			String title = "";
-			if (!fileExists) {
-				File file = new File(Config.getLogFile());
-				// delete old file and create file
-				if (file.exists()){
-					file.delete();
-				}
-				fileExists = file.createNewFile();
-				fileExists = true;
-				title = "\t\t---   jsplice log File   ---";
-				fWriter = new FileWriter(file);
-				file.setReadable(true);
-			}
-			if (fileExists) {
-				fWriter.write(title);
-				// write variants lines to file
-				for (int i=0; i < logEntries.size(); i++) {
-					if (entryPriorities.get(i) >= fileLogLevel) {
-						fWriter.append("\n");
-						fWriter.write("[" + entryPriorities.get(i) + "] " + logEntries.get(i));
-					}
-				}
-			} else
-				System.out.println("Unable to create file.");
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		System.out.println(Log.toStringStatic());
-		logEntries = new ArrayList<String>();
-		entryPriorities = new ArrayList<Integer>();
-	}
-	
-	public static int getPrintLogLevel() {
-		return printLogLevel;
-	}
-	
-	public static int getFileLogLevel() {
-		return fileLogLevel;
-	}
+  /**
+   * 
+   */
+  public Log() {
+    super();
+    getLog().add("Log file: " + Config.getLogFile(), 3);
+  }
 
-	/**
-	 * 
-	 * @param logLevel int between 1 and 6: Trace, Debug, Info, Warn, Error, Fatal
-	 */
-	public static void setPrintLogLevel(int logLevel) {
-		if(logLevel > 6 || logLevel < 1)
-			throw new IllegalArgumentException("Priority level has to be between 1 and 6: " + logLevel);
-		Log.printLogLevel = logLevel;
-	}
-	
-	/**
-	 * 
-	 * @param logLevel int between 1 and 6: Trace, Debug, Info, Warn, Error, Fatal
-	 */
-	public static void setFileLogLevel(int logLevel) {
-		if(logLevel > 6 || logLevel < 1)
-			throw new IllegalArgumentException("Priority level has to be between 1 and 6: " + logLevel);
-		Log.fileLogLevel = logLevel;
-	}
-	
-	public static int size() {
-		return logEntries.size();
-	}
-	
-	/**
-	 * reset the static object for test cases
-	 */
-	public static void reset() {
-		logEntries = new ArrayList<String>();
-		entryPriorities = new ArrayList<Integer>();
-		printLogLevel = 3;
-		fileLogLevel = 2;
-	}
+  /**
+   * @return
+   */
+  private static LogThread getLog() {
+    if (!logThread.containsKey(Thread.currentThread())) {
+      logThread.put(Thread.currentThread(), new LogThread());
+    }
+    return logThread.get(Thread.currentThread());
+  }
 
-	/**
-	 * 
-	 */
-	public static void close() {
-		if (fWriter != null){
-			try {
-				fWriter.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
+  /**
+   * Write log to File and to console
+   */
+  public static void writeToFile() {
+    getLog().writeToFile();
+    logThread.remove(getLog());
+  }
+
+  /**
+   * reset the static object for test cases
+   */
+  public void reset() {
+    getLog().reset();
+    printLogLevel = 3;
+    fileLogLevel = 2;
+  }
+
+  /**
+   * 
+   */
+  public static void close() {
+    LogThread.close();
+  }
+
+  /**
+   * Add an error string with priority 6
+   * @param message 
+   */
+  public static void add(Object message){
+    getLog().add(message.toString(), 6);
+  }
+
+  /**
+   * Add an error string
+   * @param message 
+   * @param priority int between 1 and 6: <br/>
+   * 1 Trace, 2 Debug, 3 Info, 4 Warn, 5 Error, 6 Fatal
+   */
+  public static void add(Object message, int i) {
+    getLog().add(message.toString(), i);
+  }
+
+  public static int getPrintLogLevel() {
+    return printLogLevel;
+  }
+
+  public static int getFileLogLevel() {
+    return fileLogLevel;
+  }
+
+  /**
+   * 
+   * @param logLevel int between 1 and 6: Trace, Debug, Info, Warn, Error, Fatal
+   */
+  public static void setPrintLogLevel(int logLevel) {
+    if(logLevel > 6 || logLevel < 1)
+      throw new IllegalArgumentException("Priority level has to be between 1 and 6: " + logLevel);
+    Log.printLogLevel = logLevel;
+  }
+
+  /**
+   * 
+   * @param logLevel int between 1 and 6: Trace, Debug, Info, Warn, Error, Fatal
+   */
+  public static void setFileLogLevel(int logLevel) {
+    if(logLevel > 6 || logLevel < 1)
+      throw new IllegalArgumentException("Priority level has to be between 1 and 6: " + logLevel);
+    Log.fileLogLevel = logLevel;
+  }
+
 }

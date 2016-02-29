@@ -8,6 +8,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 
+import org.apache.commons.math3.stat.descriptive.moment.Mean;
+
 import jsplice.data.Config;
 import jsplice.data.PatternMotif;
 import jsplice.exception.Log;
@@ -93,7 +95,7 @@ public class Cluster implements Comparable<Cluster> {
 //      Log.add("align: " + align, 2);
 //      System.out.println("align: " + align + "\t " + patternEntry);
       // System.out.println(patternEntry + "\t " + getPattern());
-      double quantityBen = patternEntry.quantityBen;
+      double quantityBen = patternEntry.getQuantityBen();
       for (int l = 0, lm = align; l < patternEntry.length(); l++, lm++) {
         int baseIdx = Functions.mapNumber.get(patternEntry.pattern.charAt(l));
         // System.out.println("lm: " + lm + "\t idx: " + baseIdx);
@@ -135,12 +137,12 @@ public class Cluster implements Comparable<Cluster> {
    */
   @Override
   public int compareTo(Cluster clusterP) {
-    int quantityBenDelta =
-        Integer.compare(clusterP.patternCore.quantityBen, patternCore.quantityBen);
     int quantityRelDelta =
         Double.compare(clusterP.patternCore.getQuantityRelative(),
             patternCore.getQuantityRelative());
-    return quantityBenDelta != 0 ? quantityBenDelta : quantityRelDelta;
+    int quantityRefDelta =
+        Integer.compare(clusterP.patternCore.quantityRef, patternCore.quantityRef);
+    return quantityRelDelta != 0 ? quantityRelDelta : quantityRefDelta;
   }
 
   /*
@@ -150,7 +152,7 @@ public class Cluster implements Comparable<Cluster> {
    */
   @Override
   public String toString() {
-    return "\n" + getPatternCore() + ":\n" + pattern + ",\n sub: " + patternSub;
+    return "\n" + getPatternCore() + ":\n" + pattern;
   }
 
   /**
@@ -186,14 +188,21 @@ public class Cluster implements Comparable<Cluster> {
     }
   }
 
+  /**
+   * @param clusterP
+   * @return
+   */
   public boolean add(Cluster clusterP) {
     if (this == clusterP) {
       throw new IllegalArgumentException("Not possible to add cluster to itself.");
     }
 //    Log.add("align " + this.getPatternCore() + " to " + clusterP.getPatternCore(), 2);
     int shift = Cluster.align(this, clusterP);
-    if (shift <= Integer.MIN_VALUE) {
+    if (shift == Integer.MIN_VALUE) {
       return false;
+    }
+    if (Math.abs(shift) > 5 || pattern.size() > 10 || clusterP.size() > 10) {
+      System.out.println("Big shift " + shift);
     }
     boolean success = true;
     // add pattern
@@ -217,9 +226,10 @@ public class Cluster implements Comparable<Cluster> {
                 clusterP.getPatternSub(c).quantityAlt);
       }
     }
-    if(getPatternCore().quantityBen > 0){
+    if(getPatternCore().getQuantityBen() > 0){
       calculateInformationMatrix();
     }
+    sortPattern();
     return success;
   }
 
@@ -242,15 +252,19 @@ public class Cluster implements Comparable<Cluster> {
   /**
    * find the longest pattern in the sorted cluster contains(String) will sort
    * 
-   * @param patternP
+   * @param sequenceP
+   * @param posRel 
    */
-  public boolean addQuantityBen(String patternP) {
+  public boolean addQuantityBen(String sequenceP, int posRel) {
     boolean added = false;
+    sortPattern();
     for (int p = 0; p < pattern.size() && !added; p++) {
-      String patternCurrent = pattern.get(p).pattern;
-      if (patternP.contains(patternCurrent)) {
-        pattern.get(p).quantityBen++;
-        getPatternCore().quantityBen++;
+      String patternStr = pattern.get(p).pattern;
+      if (sequenceP.contains(patternStr)) {
+        pattern.get(p).addQuantityBen();
+        getPatternCore().addQuantityBen();
+        pattern.get(p).addPos(posRel);
+        getPatternCore().addPos(posRel);
         added = true;
       }
     }
@@ -334,8 +348,20 @@ public class Cluster implements Comparable<Cluster> {
 //  }
 
 
+//  /**
+//   * @return
+//   */
+//  public int getPosition() {
+//    ArrayList<Integer> positions = new ArrayList<Integer>();
+//    for (int p = 0; p < pattern.size(); p++) {
+//      positions.addAll(pattern.get(p).getPositions());
+//    }
+//    double pos = Functions.mean(positions);
+//    return (int) Functions.round(pos, 0);
+//  }
+
   /**
-   * TODO precalculate info for all pattern in HashMap
+   * TODO precalculate info for all pattern (contained in the HashMap)
    * @param patternP
    * @return
    */
@@ -369,52 +395,117 @@ public class Cluster implements Comparable<Cluster> {
   }
 
   /**
-   * @param cluster1
-   * @param cluster2
-   * @return shifts to align cluste2 to cluster1
+   * 
    */
-  public static int align(Cluster cluster1, Cluster cluster2) {
-    PatternMotif patternC1 = cluster1.getPatternCore();
-    PatternMotif patternC2 = cluster2.getPatternCore();
-    int posBest = PatternMotif.align(patternC1.pattern, patternC2.pattern);
-    if (patternC1.contains(patternC2)) {
-      posBest = patternC1.pattern.indexOf(patternC2.pattern);
-    } else if (patternC2.contains(patternC1)) {
-      posBest = - patternC2.pattern.indexOf(patternC1.pattern);
-    } else if (patternC1.quantityBen > 0 && patternC2.quantityBen > 0) {
-      if (cluster1.weightMatrix == null) {
-        cluster1.calculateInformationMatrix();
-//        Log.add(cluster1.matrixToString("matrix1"), 2);
-      }
-      if (cluster2.weightMatrix == null) {
-        cluster2.calculateInformationMatrix();
-//        Log.add(cluster2.matrixToString("matrix2"), 2);
-      }
-      double similarityBest = 0;
-      //     String str1 = pattern1.pattern;
-      //     String str2 = pattern2.pattern;
-      for (int pos = cluster1.length() - 1; pos > -cluster2.length(); pos--) {
-        int from1 = pos > 0 ? pos : 0;
-        int to1 = pos + cluster2.length() < cluster1.length() ? pos + cluster2.length() : cluster1.length();
-        int from2 = -pos > 0 ? -pos : 0;
-        int to2 = -pos + cluster1.length() < cluster2.length() ? -pos + cluster1.length() : cluster2.length();
-        //      System.out.println(from1 + " > " + to1 + " of " + str1);
-        //      System.out.println(from2 + " > " + to2 + " of " + str2);
-        double[][] subArray1 = Arrays.copyOfRange(cluster1.probability, from1, to1);
-        double[][] subArray2 = Arrays.copyOfRange(cluster2.probability, from2, to2);
-        double similarity = Functions.probabilityMatrixSimilarity(subArray1, subArray2);
-        if (similarity > similarityBest) {
-          similarityBest = similarity;
-          posBest = pos;
-        } else if (similarity == similarityBest) {
-          //TODO save pos and add to log if matches = matchesBest best after loop
-          Log.add("alignment has same quality: " + similarity, 4);
-        }
+  public void resetQuantityBen() {
+    getPatternCore().resetQuantityBen();
+    getPatternCore().resetPositions();
+    for (int p = 0; p < pattern.size(); p++) {
+      pattern.get(p).resetQuantityBen();
+      pattern.get(p).resetPositions();
+    }
+  }
+
+  /**
+   * @param sequence
+   * @return
+   */
+  public boolean isContainedBy(String sequence) {
+    if (sequence.contains(getPatternCore().pattern)) {
+      return true;
+    }
+    for (PatternMotif patternMotif : pattern) {
+      if (sequence.contains(patternMotif.pattern)) {
+        return true;
       }
     }
-//    Log.add("posBest: " + posBest, 2);
-    return posBest;
+    return false;
   }
+
+  /**
+     * @param cluster1
+     * @param cluster2
+     * @return shifts to align cluste2 to cluster1
+     */
+    public static int align(Cluster cluster1, Cluster cluster2) {
+      PatternMotif patternC1 = cluster1.getPatternCore();
+      PatternMotif patternC2 = cluster2.getPatternCore();
+      int posBest = Integer.MIN_VALUE;
+      // pattern main matches?
+      if (patternC1.contains(patternC2)) {
+        posBest = patternC1.pattern.indexOf(patternC2.pattern);
+      } else if (patternC2.contains(patternC1)) {
+        posBest = - patternC2.pattern.indexOf(patternC1.pattern);
+      } else if (patternC1.getQuantityBen() > 1 && patternC2.getQuantityBen() > 1) {
+        // align with redundancy matrix
+        cluster1.calculateInformationMatrix();
+        cluster2.calculateInformationMatrix();
+        double similarityBest = 0;
+        //     String str1 = pattern1.pattern;
+        //     String str2 = pattern2.pattern;
+        for (int pos = -cluster2.length() + 1; pos < cluster1.length(); pos++) {
+          int from1 = pos > 0 ? pos : 0;
+          int to1 = pos + cluster2.length() < cluster1.length() ? pos + cluster2.length() : cluster1.length();
+          int from2 = -pos > 0 ? -pos : 0;
+          int to2 = -pos + cluster1.length() < cluster2.length() ? -pos + cluster1.length() : cluster2.length();
+          //      System.out.println(from1 + " > " + to1 + " of " + str1);
+          //      System.out.println(from2 + " > " + to2 + " of " + str2);
+          double[][] subArray1 = Arrays.copyOfRange(cluster1.probability, from1, to1);
+          double[][] subArray2 = Arrays.copyOfRange(cluster2.probability, from2, to2);
+          double similarity = Functions.probabilityMatrixSimilarity(subArray1, subArray2);
+          if (similarity > similarityBest && similarity > 0) {
+            similarityBest = similarity;
+            posBest = pos;
+          } else if (similarity == similarityBest  && similarity > 0) {
+            double pos1 = cluster1.getPatternCore().getPosition();
+            double pos2 = cluster2.getPatternCore().getPosition();
+            double posDif = pos + pos2 - pos1;
+            if (posDif < 0) {
+              similarityBest = similarity;
+              posBest = pos;
+            } else if (posDif > 0) {
+            } else {
+              Log.add(cluster1.getPatternCore() + " and " + cluster2.getPatternCore() + " have same similarity: " + similarity, 4);
+            }
+          }
+        }
+      } else if(cluster1.size() > 1) {
+        // align by position
+        HashMap<Integer, Integer> posCount = new HashMap<Integer, Integer>();
+        for (int p = 0; p < cluster1.size(); p++) {
+          if (cluster1.getPattern(p).contains(patternC1)) {
+            int pos = cluster1.getPattern(p).pattern.indexOf(patternC1.pattern);
+            if (posCount.containsKey(pos)) {
+              posCount.put(pos, posCount.get(pos) + 1);
+            } else {
+              posCount.put(pos, 1);
+            }
+          } else if (cluster1.getPattern(p).contains(patternC1)) {
+            int pos = - patternC1.pattern.indexOf(cluster1.getPattern(p).pattern);
+            if (posCount.containsKey(pos)) {
+              posCount.put(pos, posCount.get(pos) + 1);
+            } else {
+              posCount.put(pos, 1);
+            }
+          }
+        }
+        int maxValue = Collections.max(posCount.values());
+        if (maxValue > 1) {
+          for (Integer pos : posCount.keySet()) {
+            if (posCount.get(pos).equals(maxValue)) {
+              return pos;
+            }
+          }                                                                        ;
+        } else {
+          if (patternC1.contains(patternC2)) {
+            posBest = patternC1.pattern.indexOf(patternC2.pattern);
+          } else if (patternC2.contains(patternC1)) {
+            posBest = - patternC2.pattern.indexOf(patternC1.pattern);
+          }
+        }
+      }
+      return posBest;
+    }
 
   /**
    * @param clusterP
@@ -424,6 +515,18 @@ public class Cluster implements Comparable<Cluster> {
     ArrayList<Cluster> clone = new ArrayList<Cluster>(list.size());
     for (Cluster item : list) {
       clone.add(new Cluster(item));
+    }
+    return clone;
+  }
+
+  /**
+   * @param clusterP
+   * @return
+   */
+  public static ArrayList<Cluster> cloneSoft(ArrayList<Cluster> list) {
+    ArrayList<Cluster> clone = new ArrayList<Cluster>(list.size());
+    for (Cluster item : list) {
+      clone.add(item);
     }
     return clone;
   }

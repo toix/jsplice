@@ -203,4 +203,8 @@ public class Sequences {
 	public boolean isAcceptor() {
 		return acceptor;
 	}
+
+  public Variants getVariants() {
+    return variants;
+  }
 }

@@ -3,12 +3,14 @@
  */
 package jsplice.tools;
 
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Timer;
 
 import jsplice.data.Config;
 import jsplice.data.PatternMotif;
@@ -21,15 +23,13 @@ import jsplice.io.Variants;
 
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 
-import com.google.common.io.PatternFilenameFilter;
 import com.google.common.primitives.Doubles;
-import com.google.common.primitives.Ints;
 
 /**
  * @author Tobias Gresser (gresserT@gmail.com)
  *
  */
-public class Model {
+public class Model implements Runnable {
 
   /**
    * Number of DNA Bases (=4)
@@ -70,9 +70,6 @@ public class Model {
       throw new IllegalArgumentException("The parameter contains no variants.");
     }
     this.sequences = new Sequences(variantsP, acceptorP);
-    weightMatrix = calculateMatrix();
-    clusterHash = findPattern(variantsP, acceptorP, true);
-    clusterHashPatho = findPattern(variantsP, acceptorP, false);
     Log.add("Number of pathogene training sequences for " + (acceptorP? "acceptor" : "donor") + " site: " + sequences.getSequences().size(), 3);
   }
 
@@ -542,26 +539,24 @@ public class Model {
       }
     }
 
-    boolean simple = Config.simpleMerging;
 //    Log.add("Ref: " + quantityRef, 2);
 //    Log.add("Alt: " + quantityAlt, 2);
     ArrayList<PatternMotif> pattern = Model.createPattern(quantityRef, quantityAlt);
     //		Log.add("pattern: " + pattern, 2);
     ArrayList<Cluster> cluster = createClusterSub(pattern);
     //		Log.add("cluster: " + cluster, 2);
-    if (simple) {
-      cluster = createCluster(cluster);
-//    Log.add("core: " + cluster, 2);
-    } else {
-      cluster = createCluster(cluster);
-//      Log.add("core: " + cluster, 2);
+      if (Config.clusteringBasic) {
+        cluster = createCluster(cluster);
+//       Log.add("core: " + cluster, 2);
+      }
+      if (!Config.simpleMerging) {
       cluster = mergeCluster(cluster, variantsP);
 //      Log.add("merged: " + cluster, 2);
     }
     cluster = countClusterInSequences(cluster, variantsP);
 //    Log.add("Ben count: " + cluster, 2);
     HashMap<String, Cluster> clusterHash = createHash(cluster);
-    Log.add("Created cluster with " + variantsP.size() + " variants for " + (benign? "benign " : "pathogene ") + (acceptorP? "acceptor" : "donor") + " sequences", 3);
+    Log.add("Created " + cluster.size() + " cluster with " + variantsP.size() + " variants for " + (benign? "benign " : "pathogene ") + (acceptorP? "acceptor" : "donor") + " sequences", 3);
     Log.add(cluster, 2);
     return clusterHash;
   }
@@ -607,18 +602,20 @@ public class Model {
       Cluster clusterNew = new Cluster(patternMain);
       cluster.add(clusterNew);
       patternCopy.remove(patternHightest);
-      for (int p = 0; p < patternCopy.size(); p++) {
-        PatternMotif patternCurrent = patternCopy.get(p);
-        if (patternMain.contains(patternCurrent)) {
-          // add the unchanged copy of Pattern
-          clusterNew.addSub(patternCopyHash.get(patternCurrent));
+      if (Config.clusteringSub) {
+        for (int p = 0; p < patternCopy.size();) {
+          PatternMotif patternCurrent = patternCopy.get(p);
           int mainAbs = patternMain.quantityRef;
           int subAbs = patternCurrent.quantityRef;
-          if (0.5 * subAbs <= mainAbs) {
+          if (patternMain.contains(patternCurrent) && 0.5 * subAbs <= mainAbs) {
+            // add the unchanged copy of Pattern
+            clusterNew.addSub(patternCopyHash.get(patternCurrent));
             patternCopy.remove(patternCurrent);
-//          } else {
-//            patternCurrent.quantityRef -= patternHightest.quantityRef;
-//            p++;
+            //        } else if (0.5 * subAbs <= mainAbs){
+            //          patternCurrent.quantityRef -= patternHightest.quantityRef;
+            //          p++;
+          } else {
+            p++;
           }
         }
       }
@@ -686,25 +683,27 @@ public class Model {
    */
   private static ArrayList<Cluster> createCluster(ArrayList<Cluster> clusterP) {
     ArrayList<Cluster> clusterCopy = Cluster.clone(clusterP);
-    for (int len = Config.lengthIntronPatternMax - 1; len > 1; len--) {
+    for (int len = Config.lengthIntronPatternMax - 1; len > 0; len--) {
       for (int m = 0; m < clusterCopy.size(); m++) {
         //				Collections.sort(clusterCopy);
         Cluster clusterMain = clusterCopy.get(m);
-        clusterCopy.set(m, clusterMain);
         for (int c = m + 1; c < clusterCopy.size();) {
           Cluster clusterCurrent = clusterCopy.get(c);
           boolean contains = clusterCurrent.getPatternCore().contains(clusterMain.getPatternCore());
-          int absMain = clusterCopy.get(m).getPatternCore().quantityRef;
-          int absSub = clusterCopy.get(c).getPatternCore().quantityRef;
-          boolean quantityOk = absSub < absMain;
-          int lenMain = clusterCopy.get(m).getPatternCore().pattern.length();
-          int lenSub = clusterCopy.get(c).getPatternCore().pattern.length();
-          boolean lengthOk = lenMain == len && lenSub == len + 1;
+          int lenMain = clusterMain.getPatternCore().pattern.length();
+          int lenSub = clusterCurrent.getPatternCore().pattern.length();
+          //          boolean lengthOk = lenMain == len && (lenSub == len + 1 || lenSub == len + 2);
+          boolean lengthOk = lenMain == len && lenSub > len;
+          int lenDif = lenSub - lenMain;
+          int absMain = clusterMain.getPatternCore().quantityRef;
+          int absClus = clusterCurrent.getPatternCore().quantityRef;
+          boolean quantityOk = (Math.pow(4, lenDif) - 2) * absClus < absMain;
+          //          boolean quantityOk = lenDif * absSub < absMain;
           double subRel = clusterCopy.get(m).getPatternCore().getQuantityRelative();
           double limit = Config.quantityRelLimit;
-          if (contains && quantityOk && lengthOk) {
-            clusterCopy.get(m).add(clusterCurrent);
-            clusterCopy.remove(c);
+          if (contains && lengthOk && quantityOk) {
+            clusterMain.add(clusterCurrent);
+            clusterCopy.remove(clusterCurrent);
           } else {
             c++;
           }
@@ -714,10 +713,13 @@ public class Model {
     return clusterCopy;
   }
 
-  private static ArrayList<Cluster> mergeCluster(ArrayList<Cluster> cluster, Variants variants) {
-    double limit = 0.9;
+  @SuppressWarnings("unused")
+  private static ArrayList<Cluster> mergeCluster(ArrayList<Cluster> clusterP, Variants variants) {
+    double limit = Config.mergingCorrelationMin;
+    ArrayList<Cluster> cluster = Cluster.clone(clusterP);
     // precalculate first cluster pair
-    double[][] correlationCluster = createClusterCorrelationMatrix(cluster, variants);
+    ClusterCorrelation correlation = new ClusterCorrelation(cluster, variants);
+    double[][] correlationCluster = correlation.getOriginal();
     double max = Double.MIN_VALUE;
     int maxPos1 = -1;
     int maxPos2 = -1;
@@ -733,17 +735,31 @@ public class Model {
     // merge clusters while limit is not reached
     for (int i = 0; max > limit; i++) {
       // merge
-      Log.add("Merging\n cl1: " + cluster.get(maxPos1).getPatternCore() + "\n cl2: " + cluster.get(maxPos2).getPatternCore(), 2);
-      boolean success = cluster.get(maxPos1).add(cluster.get(maxPos2));
-      if (!success) {
-        Log.add("Clusters can't be aligned:\n" + cluster.get(maxPos2).getPatternCore() + "\nto\n" + cluster.get(maxPos1).getPatternCore());
+      int newIdx;
+      int delIdx;
+      if (cluster.get(maxPos1).getPatternCore().quantityRef > cluster.get(maxPos2).getPatternCore().quantityRef) {
+        newIdx = maxPos1;
+        delIdx = maxPos2;
+      } else {
+        newIdx = maxPos2;
+        delIdx = maxPos1;
       }
-      cluster.remove(maxPos2);
-      correlationCluster = createClusterCorrelationMatrix(cluster, variants);
+      Cluster newCl = cluster.get(newIdx);
+      Cluster delCl = cluster.get(delIdx);
+      Log.add("Merging\t cl1: " + newCl.getPatternCore().pattern + "\t cl2: " + delCl.getPatternCore().pattern + "\t with correlation " + max, 2);
+      boolean success = newCl.add(delCl);
+      if (success) {
+        cluster.remove(delIdx);
+        correlationCluster = correlation.refresh(newIdx, delIdx);
+      } else {
+        correlationCluster = correlation.notMatchable(newIdx, delIdx);
+        Log.add("Clusters can't be aligned:\t " + newCl.getPatternCore().pattern + " and " + delCl.getPatternCore().pattern, 4);
+      }
       // reset values
       max = Double.MIN_VALUE;
       maxPos1 = -1;
       maxPos2 = -1;
+      // find new pair
       for (int c = 0; c < correlationCluster.length; c++) {
         double maxTemp = Doubles.max(correlationCluster[c]);
         int maxPosTemp = Doubles.indexOf(correlationCluster[c], maxTemp);
@@ -755,54 +771,6 @@ public class Model {
       }
     }
     return cluster;
-  }
-
-  /**
-   * Count only the longest pattern of every cluster that the sequences contains
-   * TODO relative correlation
-   * @param cluster
-   * @param variants
-   * @return
-   */
-  private static double[][] createClusterCorrelationMatrix(ArrayList<Cluster> clusterP, Variants variants) {
-    ArrayList<Cluster> cluster = Cluster.clone(clusterP);
-    double[][] correlation = new double[cluster.size()][cluster.size()];
-    int lengthIntronMax = Config.lengthIntronPatternMax;
-    for (int v = 0; v < variants.size(); v++) {
-      boolean[] matchingCluster = new boolean[cluster.size()];
-      for (int c = 0; c < cluster.size(); c++) {
-        cluster.get(c).sortPattern();
-        PatternMotif patternCluster = cluster.get(c).getPatternCore();
-        int posChange = variants.get(v).getSequence().getPositionChange();
-        int min = posChange - lengthIntronMax + 1;
-        int max = posChange + lengthIntronMax - 1;
-        String sequence = variants.get(v).getSequence().substring(min, max);
-        if (sequence.contains(patternCluster.pattern)) {
-          matchingCluster[c] = true;
-          if (!cluster.get(c).addQuantityBen(sequence)) {
-            throw new IllegalArgumentException();
-          }
-        }
-      }
-      for (int c1 = 0; c1 < matchingCluster.length; c1++) {
-        for (int c2 = 0; c2 < matchingCluster.length; c2++) {
-          if (matchingCluster[c1] && matchingCluster[c2] && c1 != c2) {
-            correlation[c1][c2]++;
-          }
-        }
-      }
-    }
-    for (int c1 = 0; c1 < correlation.length; c1++) {
-      for (int c2 = 0; c2 < correlation[c1].length; c2++) {
-        int qty1 = cluster.get(c1).getPatternCore().quantityBen;
-        int qty2 = cluster.get(c2).getPatternCore().quantityBen;
-        int divisor = qty1 < qty2 ? qty1 : qty2;
-        if (divisor > 0) {
-          correlation[c1][c2] = correlation[c1][c2] / (divisor);
-        }
-      }
-    }
-    return correlation;
   }
 
   /**
@@ -821,9 +789,10 @@ public class Model {
         int posChange = variants.get(v).getSequence().getPositionChange();
         int min = posChange - lengthIntronMax + 1;
         int max = posChange + lengthIntronMax - 1;
-        String sequenceRef = variants.get(v).getSequence().substring(min, max);
-        if (sequenceRef.contains(patternCluster.pattern)) {
-          if (!cluster.get(c).addQuantityBen(sequenceRef)) {
+        String sequenceStr = variants.get(v).getSequence().substring(min, max);
+        if (cluster.get(c).isContainedBy(sequenceStr)) {
+          int posRel = variants.get(v).getSequence().getPositionChangeRelative();
+          if (!cluster.get(c).addQuantityBen(sequenceStr, posRel)) {
             throw new IllegalArgumentException();
           }
         }
@@ -854,5 +823,15 @@ public class Model {
       }
     }
     return clusterHash;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Runnable#run()
+   */
+  @Override
+  public void run() {
+    weightMatrix = calculateMatrix();
+    clusterHash = findPattern(sequences.getVariants(), isAcceptor(), true);
+    clusterHashPatho = findPattern(sequences.getVariants(), isAcceptor(), false);
   }
 }

@@ -463,6 +463,7 @@ public class Filter {
 	public static Variants removeStopCodon(Variants variants, boolean intronExonJunction) {
 		Variants strangeVariants = new Variants();
 		Model model = new Model(variants, intronExonJunction);
+		model.run();
 		for (int i = 0; i < variants.size(); i++) {
 			Sequence sequence = variants.get(i).getSequence();
 			int junction = sequence.getPositionJunction();

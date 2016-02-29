@@ -248,6 +248,14 @@ public class Functions {
 		}
 		return sum;
 	}
+	
+	public static int sum(ArrayList<Integer> list) {
+	  int sum = 0;
+	  for (int i = 0; i < list.size(); i++) {
+	    sum += list.get(i);
+	  }
+	  return sum;
+	}
 
 	/**
 	 * Probability that a base occurs at a certain position
@@ -394,6 +402,16 @@ public class Functions {
       distance += distanceSum / matrix1[p].length;
     }
     return distance;
+  }
+  /**
+   * @param list
+   */
+  public static double mean(ArrayList<Integer> list) {
+    if (list.size() == 0) {
+      throw new IllegalArgumentException();
+    }
+    double count = sum(list);
+    return count / list.size();
   }
 }
 

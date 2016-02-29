@@ -44,7 +44,7 @@ public class Config {
   /**
    * The maximum length of the pattern for clustering
    */
-  public static final int lengthIntronPatternMax = 10;
+  public static final int lengthIntronPatternMax = 12;
   // /**
   // * Threshold for the difference of the sum of the individual information between reference and
   // alternate
@@ -55,9 +55,15 @@ public class Config {
   public static final int distanceClusterMax = getLengthTrainingIntron() - lengthIntronPatternMax;
   public static final boolean multiClusterRel = false;
   public static final boolean simpleMerging = false;
-  public static final String folder = "results/cluster" + (simpleMerging ? "Spl" : "Cpx")
-      + (multiClusterRel ? "Rel" : "Std") + "/" + Config.getLengthModelIntron() + "+"
-      + Config.getLengthModelExon() + "/";
+  public static final double mergingCorrelationMin = 0.8;
+  public static final boolean clusteringSub = false;
+  public static final boolean clusteringBasic = false;
+  public static final String folder = "results/cluster"
+      + (multiClusterRel ? "Rel" : "Std")
+      + (clusteringSub ? "Csub" : "")
+      + (clusteringBasic ? "Cbasic" : "")
+      + (simpleMerging ? "Spl" : ("Cpx" + mergingCorrelationMin))
+      + "/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
   private static String logFile = folder + "jsplice.log";
   public static final int crossValidationSteps = 1000;
 	

@@ -19,9 +19,10 @@ public class PatternMotif implements Comparable<PatternMotif>{
   public String pattern;
   public int quantityRef;
   public int quantityAlt;
-  public int quantityBen;
+  private int quantityBen = 0;
   public int quantityPat;
   public int shift;
+  private ArrayList<Integer> positions;
 
   /**
    * 
@@ -40,13 +41,14 @@ public class PatternMotif implements Comparable<PatternMotif>{
     this.quantityBen = patternP.quantityBen;
     this.quantityPat = patternP.quantityPat;
     this.shift = patternP.shift;
+    this.positions = new ArrayList<Integer>();
   }
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */
   @Override
   public String toString() {
-    return pattern + " " + quantityBen + " " + getQuantityRelative();
+    return pattern + " " + quantityBen + " " + quantityRef + " " + getQuantityRelative();
   }
 
   /* (non-Javadoc)
@@ -70,10 +72,6 @@ public class PatternMotif implements Comparable<PatternMotif>{
     return super.equals(patternP);
   }
 
-  public int length(){
-    return pattern.length();
-  }
-
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */
@@ -84,8 +82,27 @@ public class PatternMotif implements Comparable<PatternMotif>{
     return lengthDelta != 0 ? lengthDelta : quantytyRelDelta;
   }
 
+  public int length(){
+    return pattern.length();
+  }
+
+  public void addQuantityBen() {
+    this.quantityBen++;
+  }
+
+  /**
+   * @param posRel
+   */
+  public void addPos(int posRel) {
+    positions.add(posRel);
+  }
+
   public double getQuantityRelative() {
     return (double) quantityRef / (quantityAlt + 1);
+  }
+
+  public double getQuantityPerVariability() {
+    return (double) quantityBen / Math.pow(4, pattern.length());
   }
 
   /**
@@ -102,6 +119,26 @@ public class PatternMotif implements Comparable<PatternMotif>{
    */
   public boolean contains(String patternP) {
     return pattern.contains(patternP);
+  }
+
+  public int getQuantityBen() {
+    return quantityBen;
+  }
+  
+  public double getPosition() {
+    double pos = Functions.mean(positions);
+    return pos;
+  }
+
+  public void resetQuantityBen() {
+    this.quantityBen = 0;
+  }
+
+  /**
+   * 
+   */
+  public void resetPositions() {
+    this.positions = new ArrayList<Integer>();
   }
 
   /* (non-Javadoc)
@@ -132,6 +169,51 @@ public class PatternMotif implements Comparable<PatternMotif>{
     return clone;
   }
 
+  /**
+   * TODO if no character matches throw an exception 
+   * @param pat1
+   * @param pat2
+   * @return
+   */
+  public static int align(PatternMotif pat1, PatternMotif pat2){
+    int matchesMax = 0;
+    int posMax = Integer.MIN_VALUE;
+//    String str1 = pattern1.pattern;
+//    String str2 = pattern2.pattern;
+    for (int pos = pat1.length()-1; pos > -pat2.length(); pos--) {
+      int from1 = pos > 0 ? pos : 0;
+      int to1 = pos + pat2.length() < pat1.length() ? pos + pat2.length() : pat1.length();
+      int from2 = -pos > 0 ? -pos : 0;
+      int to2 = -pos + pat1.length() < pat2.length() ? -pos + pat1.length() : pat2.length();
+//      System.out.println(from1 + " > " + to1 + " of " + str1);
+//      System.out.println(from2 + " > " + to2 + " of " + str2);
+      int matches = Functions.countMatchingChar(pat1.pattern.substring(from1, to1), pat2.pattern.substring(from2, to2));
+      //            System.out.println(matches);
+      if (matches > 0 && matches > matchesMax) {
+        matchesMax = matches;
+        posMax = pos;
+      } else if (matches > 0 && matches == matchesMax) {
+        double pos1 = pat1.getPosition();
+        double pos2 = pat2.getPosition();
+        double posDif = pos + pos2 - pos1;
+        if (posDif < 0) {
+          matchesMax = matches;
+          posMax = pos;
+        } else if (posDif > 0) {
+        } else {
+          Log.add(posMax + " and " + pos + " are both matching " + matches + " characters.", 2);
+        }
+      }
+    }
+    return posMax;
+  }
+  
+  /**
+   * TODO if no character matches throw an exception 
+   * @param str1
+   * @param str2
+   * @return
+   */
   public static int align(String str1, String str2){
     int matchesMax = 0;
     int posMax = Integer.MIN_VALUE;
@@ -146,13 +228,20 @@ public class PatternMotif implements Comparable<PatternMotif>{
 //      System.out.println(from2 + " > " + to2 + " of " + str2);
       int matches = Functions.countMatchingChar(str1.substring(from1, to1), str2.substring(from2, to2));
       //			System.out.println(matches);
-      if (matches > matchesMax) {
+      if (matches > 0 && matches > matchesMax) {
         matchesMax = matches;
         posMax = pos;
-      } else if (matches == matchesMax && matches > 0) {
+      } else if (matches > 0 && matches == matchesMax) {
 //        Log.add(posMax + " and " + pos + " are both matching " + matches + " characters.", 2);
       }
     }
     return posMax;
+  }
+
+  /**
+   * @return
+   */
+  public ArrayList<Integer> getPositions() {
+    return positions;
   }
 }
