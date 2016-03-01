@@ -48,7 +48,7 @@ public class PatternMotif implements Comparable<PatternMotif>{
    */
   @Override
   public String toString() {
-    return pattern + " " + quantityBen + " " + quantityRef + " " + getQuantityRelative();
+    return pattern + " " + quantityBen + " " + quantityRef + " " + getQuantityRefRelative();
   }
 
   /* (non-Javadoc)
@@ -78,7 +78,7 @@ public class PatternMotif implements Comparable<PatternMotif>{
   @Override
   public int compareTo(PatternMotif patternP) {
     int lengthDelta = Integer.compare(patternP.length(), length());
-    int quantytyRelDelta = Double.compare(patternP.getQuantityRelative(), getQuantityRelative());
+    int quantytyRelDelta = Double.compare(patternP.getQuantityRefRelative(), getQuantityRefRelative());
     return lengthDelta != 0 ? lengthDelta : quantytyRelDelta;
   }
 
@@ -97,12 +97,17 @@ public class PatternMotif implements Comparable<PatternMotif>{
     positions.add(posRel);
   }
 
-  public double getQuantityRelative() {
+  public double getQuantityRefRelative() {
     return (double) quantityRef / (quantityAlt + 1);
   }
 
-  public double getQuantityPerVariability() {
-    return (double) quantityBen / Math.pow(4, pattern.length());
+  public double getQuantityBenRelative(int variantsSize) {
+    int lengthPatternMax = Config.lengthIntronPatternMax;
+    int lengthPattern = pattern.length();
+    int possibleOccurances = lengthPatternMax - (lengthPattern - 1);
+    double possibleCombinations = Math.pow(4, lengthPattern);
+    double relativeQuantity = ((quantityBen - 1.) / variantsSize) * (possibleCombinations / possibleOccurances);
+    return relativeQuantity;
   }
 
   /**

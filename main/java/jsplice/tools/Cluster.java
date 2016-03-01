@@ -28,6 +28,7 @@ public class Cluster implements Comparable<Cluster> {
   private double InformationCore;
   private PatternMotif patternCore;
   private double[][] probability;
+  private int variantsSize = 1;
 
   /**
    * 
@@ -35,9 +36,9 @@ public class Cluster implements Comparable<Cluster> {
    * @param quantityAbsP
    * @param quantityConditionP
    */
-  public Cluster(String patternP, int quantityAbsP, int quantityConditionP) {
-
+  public Cluster(String patternP, int quantityAbsP, int quantityConditionP, int variantsSizeP) {
     add(patternP, quantityAbsP, quantityConditionP, 0);
+    this.variantsSize = variantsSizeP;
     this.patternCore = new PatternMotif(pattern.get(0));
   }
 
@@ -45,8 +46,9 @@ public class Cluster implements Comparable<Cluster> {
    * 
    * @param patternP
    */
-  public Cluster(PatternMotif patternP) {
+  public Cluster(PatternMotif patternP, int variantsSizeP) {
     add(patternP);
+    this.variantsSize = variantsSizeP;
     this.patternCore = new PatternMotif(pattern.get(0));
   }
 
@@ -57,6 +59,7 @@ public class Cluster implements Comparable<Cluster> {
     lengthCluster = clusterP.lengthCluster;
     lengthOverlapMax = clusterP.lengthOverlapMax;
     InformationCore = clusterP.InformationCore;
+    this.variantsSize = clusterP.variantsSize;
     this.patternCore = findPatternCore(clusterP.getPatternCore());
   }
 
@@ -81,6 +84,10 @@ public class Cluster implements Comparable<Cluster> {
     Collections.sort(patternSub);
   }
 
+  /**
+   * TODO NaN
+   * @return
+   */
   public double[][] calculateInformationMatrix() {
     // count quantities by position
     int lengthPattern = getPatternCore().length();
@@ -138,8 +145,8 @@ public class Cluster implements Comparable<Cluster> {
   @Override
   public int compareTo(Cluster clusterP) {
     int quantityRelDelta =
-        Double.compare(clusterP.patternCore.getQuantityRelative(),
-            patternCore.getQuantityRelative());
+        Double.compare(clusterP.patternCore.getQuantityRefRelative(),
+            patternCore.getQuantityRefRelative());
     int quantityRefDelta =
         Integer.compare(clusterP.patternCore.quantityRef, patternCore.quantityRef);
     return quantityRelDelta != 0 ? quantityRelDelta : quantityRefDelta;
@@ -152,7 +159,7 @@ public class Cluster implements Comparable<Cluster> {
    */
   @Override
   public String toString() {
-    return "\n" + getPatternCore() + ":\n" + pattern;
+    return "\n" + getPatternCore().pattern + " " + getQuantityBenRel(variantsSize) + " " + getPatternCore().quantityRef + " " + getPatternCore().getQuantityRefRelative() + ":\n" + pattern;
   }
 
   /**
@@ -201,8 +208,8 @@ public class Cluster implements Comparable<Cluster> {
     if (shift == Integer.MIN_VALUE) {
       return false;
     }
-    if (Math.abs(shift) > 5 || pattern.size() > 10 || clusterP.size() > 10) {
-      System.out.println("Big shift " + shift);
+    if (Math.abs(shift) > 5 || pattern.size() > 15 || clusterP.size() > 15) {
+      shift = shift;
     }
     boolean success = true;
     // add pattern
@@ -216,7 +223,7 @@ public class Cluster implements Comparable<Cluster> {
     for (int c = 0; c < clusterP.sizeSub(); c++) {
       PatternMotif patternSub = clusterP.getPatternSub(c);
       double limit = Config.quantityRelLimit;
-      if (patternSub.contains(getPatternCore()) && patternSub.getQuantityRelative() > limit) {
+      if (patternSub.contains(getPatternCore()) && patternSub.getQuantityRefRelative() > limit) {
         success &=
             add(clusterP.getPatternSub(c).pattern, clusterP.getPatternSub(c).quantityRef,
                 clusterP.getPatternSub(c).quantityAlt, patternSub.shift + shift);
@@ -255,7 +262,7 @@ public class Cluster implements Comparable<Cluster> {
    * @param sequenceP
    * @param posRel 
    */
-  public boolean addQuantityBen(String sequenceP, int posRel) {
+  public boolean addQuantityBen(String sequenceP, int posRel, int variantsSize) {
     boolean added = false;
     sortPattern();
     for (int p = 0; p < pattern.size() && !added; p++) {
@@ -271,21 +278,41 @@ public class Cluster implements Comparable<Cluster> {
     return added;
   }
 
-  /**
-   * @param sequenceAlt
-   * @return
-   */
-  public boolean addQuantityPat(String patternP) {
-    boolean added = false;
-    for (int p = 0; p < pattern.size() && !added; p++) {
-      String patternCurrent = pattern.get(p).pattern;
-      if (patternP.contains(patternCurrent)) {
-        pattern.get(p).quantityPat++;
-        getPatternCore().quantityPat++;
-        added = true;
-      }
+//  /**
+//   * @param sequenceAlt
+//   * @return
+//   */
+//  public boolean addQuantityPat(String patternP) {
+//    boolean added = false;
+//    for (int p = 0; p < pattern.size() && !added; p++) {
+//      String patternCurrent = pattern.get(p).pattern;
+//      if (patternP.contains(patternCurrent)) {
+//        pattern.get(p).quantityPat++;
+//        getPatternCore().quantityPat++;
+//        added = true;
+//      }
+//    }
+//    return added;
+//  }
+
+  public double getQuantityBenRel(int variantsSize) {
+    double quantityBenRel = 0;
+    for (int p = 0; p < pattern.size(); p++) {
+      quantityBenRel += pattern.get(p).getQuantityBenRelative(variantsSize);
     }
-    return added;
+    return quantityBenRel;
+  }
+
+  /**
+   * 
+   */
+  public void resetQuantityBen() {
+    getPatternCore().resetQuantityBen();
+    getPatternCore().resetPositions();
+    for (int p = 0; p < pattern.size(); p++) {
+      pattern.get(p).resetQuantityBen();
+      pattern.get(p).resetPositions();
+    }
   }
 
   public int size() {
@@ -388,21 +415,9 @@ public class Cluster implements Comparable<Cluster> {
     }
 //    return Functions.sum(individualInformation) * Math.log(getPatternCore().quantityBen + 1) / Math.log(2);
     if (multiRel) {
-      return Functions.sum(individualInformation) * Math.log(getPatternCore().getQuantityRelative() + 1) / Math.log(2);
+      return Functions.sum(individualInformation) * Math.log(getPatternCore().getQuantityRefRelative() + 1) / Math.log(2);
     } else {
       return Functions.sum(individualInformation);
-    }
-  }
-
-  /**
-   * 
-   */
-  public void resetQuantityBen() {
-    getPatternCore().resetQuantityBen();
-    getPatternCore().resetPositions();
-    for (int p = 0; p < pattern.size(); p++) {
-      pattern.get(p).resetQuantityBen();
-      pattern.get(p).resetPositions();
     }
   }
 

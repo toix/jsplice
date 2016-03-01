@@ -23,6 +23,7 @@ public class Test {
 	public static void main(String[] args) {
 		System.out.println(PatternMotif.align("CGGC", "GCGGCT"));
 //		System.out.println(PatternMotif.align("Workshop", "workhop"));
+		System.out.println(5);
 	}
 
 }

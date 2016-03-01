@@ -67,7 +67,7 @@ public class ClusterCorrelation {
           matchingCluster[c][v] = true;
           quantityCl[c]++;
           int posRel = variants.get(v).getSequence().getPositionChangeRelative();
-          if (!clusterC.addQuantityBen(sequenceStr, posRel)) {
+          if (!clusterC.addQuantityBen(sequenceStr, posRel, variants.size())) {
             throw new IllegalArgumentException();
           }
         } else {
@@ -84,19 +84,39 @@ public class ClusterCorrelation {
     }
     for (int c1 = 0; c1 < correlation.length; c1++) {
       for (int c2 = 0; c2 < correlation[c1].length; c2++) {
+        Cluster cl1 = cluster.get(c1);
+        Cluster cl2 = cluster.get(c2);
         int qty1 = quantityCl[c1];
         int qty2 = quantityCl[c2];
-        int len1 = cluster.get(c1).getPatternCore().pattern.length();
-        int len2 = cluster.get(c2).getPatternCore().pattern.length();
+        int len1 = cl1.getPatternCore().pattern.length();
+        int len2 = cl2.getPatternCore().pattern.length();
         int lenDif = Math.abs(len1 - len2);
         int lenMin = len1 < len2 ? len1 : len2;
-        int qtyMin = (qty1 < qty2 ? qty1 : qty2);
-        double divisor = qtyMin / ((3. + lenMin)/(4. + lenMin) + 0.1) + (1. + lenDif) / (2. + lenDif) + (1. + qtyMin) / (2. + qtyMin);
+        int qtyMin = qty1 < qty2 ? qty1 : qty2;
+        int qtyMax = qty1 > qty2 ? qty1 : qty2;
+        double divisor = (qtyMin + 0.1 * qtyMax) /1.1 / ((3. + lenMin)/(4. + lenMin) + 0.1) + (1. + lenDif) / (2. + lenDif) + (1. + qtyMin) / (2. + qtyMin);
         if (divisor > 0) {
           correlation[c1][c2] = quantityClCl[c1][c2] / divisor;
         } else {
           correlation[c1][c2] = 0;
         }
+//        Cluster cl1 = cluster.get(c1);
+//        Cluster cl2 = cluster.get(c2);
+//        int matchingCharsCore = Functions.countMatchingChar(cl1.getPatternCore().pattern, cl2.getPatternCore().pattern);
+//        int qty1 = quantityCl[c1];
+//        int qty2 = quantityCl[c2];
+//        int len1 = cl1.getPatternCore().pattern.length();
+//        int len2 = cl2.getPatternCore().pattern.length();
+//        int lenDif = Math.abs(len1 - len2);
+//        int lenMin = len1 < len2 ? len1 : len2;
+//        int qtyMin = qty1 < qty2 ? qty1 : qty2;
+//        int qtyMax = qty1 > qty2 ? qty1 : qty2;
+//        double divisor = (qtyMin + 0.1 * qtyMax) /1.1 / ((3. + lenMin)/(4. + lenMin) + 0.1) + (1. + lenDif) / (2. + lenDif) + (1. + qtyMin) / (2. + qtyMin);
+//        if (matchingCharsCore > 0 && divisor > 0) {
+//          correlation[c1][c2] = quantityClCl[c1][c2] / divisor;
+//        } else {
+//          correlation[c1][c2] = 0;
+//        }
       }
     }
     return correlation;
@@ -122,7 +142,7 @@ public class ClusterCorrelation {
         matchingCluster[newIdx][v] = true;
         quantityCl[newIdx]++;
         int posRel = variants.get(v).getSequence().getPositionChangeRelative();
-        if (!newCl.addQuantityBen(sequenceStr, posRel)) {
+        if (!newCl.addQuantityBen(sequenceStr, posRel, variants.size())) {
           throw new IllegalArgumentException();
         }
       } else {
@@ -136,14 +156,16 @@ public class ClusterCorrelation {
       }
     }
     for (int c = 0; c < correlation.length; c++) {
+      Cluster clC = cluster.get(c);
       int qty1 = quantityCl[newIdx];
       int qty2 = quantityCl[c];
-      int len1 = cluster.get(newIdx).getPatternCore().pattern.length();
+      int len1 = newCl.getPatternCore().pattern.length();
       int len2 = cluster.get(c).getPatternCore().pattern.length();
       int lenDif = Math.abs(len1 - len2);
       int lenMin = len1 < len2 ? len1 : len2;
       int qtyMin = (qty1 < qty2 ? qty1 : qty2);
-      double divisor = qtyMin / ((1. + lenMin)/(2. + lenMin)) + (1. + lenDif) / (2. + lenDif) + (1. + qtyMin) / (2. + qtyMin);
+      int qtyMax = qty1 > qty2 ? qty1 : qty2;
+      double divisor = (qtyMin + 0.1 * qtyMax) /1.1 / ((3. + lenMin)/(4. + lenMin) + 0.1) + (1. + lenDif) / (2. + lenDif) + (1. + qtyMin) / (2. + qtyMin);
       if (divisor > 0) {
         correlation[c][newIdx] = quantityClCl[c][newIdx] / divisor;
         correlation[newIdx][c] = quantityClCl[newIdx][c] / divisor;

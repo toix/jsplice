@@ -543,7 +543,7 @@ public class Model implements Runnable {
 //    Log.add("Alt: " + quantityAlt, 2);
     ArrayList<PatternMotif> pattern = Model.createPattern(quantityRef, quantityAlt);
     //		Log.add("pattern: " + pattern, 2);
-    ArrayList<Cluster> cluster = createClusterSub(pattern);
+    ArrayList<Cluster> cluster = createClusterSub(pattern, variantsP.size());
     //		Log.add("cluster: " + cluster, 2);
       if (Config.clusteringBasic) {
         cluster = createCluster(cluster);
@@ -591,15 +591,15 @@ public class Model implements Runnable {
    * @param patternCopy
    * @return
    */
-  private static ArrayList<Cluster> createClusterSub(ArrayList<PatternMotif> patternP) {
+  private static ArrayList<Cluster> createClusterSub(ArrayList<PatternMotif> patternP, int variantsSize) {
     double limit = Config.quantityRelLimit;
     ArrayList<PatternMotif> patternCopy = PatternMotif.clone(patternP);
     HashMap<PatternMotif, PatternMotif> patternCopyHash = PatternMotif.cloneToMap(patternCopy);
     ArrayList<Cluster> cluster = new ArrayList<Cluster>();
     PatternMotif patternHightest = findHighestPattern(patternCopy);
-    while (patternHightest.getQuantityRelative() > limit) {
+    while (patternHightest.getQuantityRefRelative() > limit) {
       PatternMotif patternMain = patternCopyHash.get(patternHightest);
-      Cluster clusterNew = new Cluster(patternMain);
+      Cluster clusterNew = new Cluster(patternMain, variantsSize);
       cluster.add(clusterNew);
       patternCopy.remove(patternHightest);
       if (Config.clusteringSub) {
@@ -635,8 +635,8 @@ public class Model implements Runnable {
     for (PatternMotif patternCurrent : patternP) {
       // Log.add(patternMax + " < " + patternCurrent.getQuantityRelative() + "\t " + (valueMax <
       // patternCurrent.getQuantityRelative()));
-      if (valueMax < patternCurrent.getQuantityRelative()) {
-        valueMax = patternCurrent.getQuantityRelative();
+      if (valueMax < patternCurrent.getQuantityRefRelative()) {
+        valueMax = patternCurrent.getQuantityRefRelative();
         patternMax = patternCurrent;
         // Log.add(patternMax);
       }
@@ -657,7 +657,7 @@ public class Model implements Runnable {
                 clusterCopy.get(m).add(clusterCurrent);
                 int mainAbs = clusterCopy.get(m).getPatternCore().quantityRef;
                 int subAbs = clusterCopy.get(c).getPatternCore().quantityRef;
-                double subRel = clusterCopy.get(m).getPatternCore().getQuantityRelative();
+                double subRel = clusterCopy.get(m).getPatternCore().getQuantityRefRelative();
                 double limit = Config.quantityRelLimit;
                 int lenDif = clusterCopy.get(c).getPatternCore().pattern.length() - clusterCopy.get(m).getPatternCore().pattern.length();
                 if (lenDif * subAbs <= mainAbs && subRel > limit) {
@@ -699,7 +699,7 @@ public class Model implements Runnable {
           int absClus = clusterCurrent.getPatternCore().quantityRef;
           boolean quantityOk = (Math.pow(4, lenDif) - 2) * absClus < absMain;
           //          boolean quantityOk = lenDif * absSub < absMain;
-          double subRel = clusterCopy.get(m).getPatternCore().getQuantityRelative();
+          double subRel = clusterCopy.get(m).getPatternCore().getQuantityRefRelative();
           double limit = Config.quantityRelLimit;
           if (contains && lengthOk && quantityOk) {
             clusterMain.add(clusterCurrent);
@@ -792,15 +792,15 @@ public class Model implements Runnable {
         String sequenceStr = variants.get(v).getSequence().substring(min, max);
         if (cluster.get(c).isContainedBy(sequenceStr)) {
           int posRel = variants.get(v).getSequence().getPositionChangeRelative();
-          if (!cluster.get(c).addQuantityBen(sequenceStr, posRel)) {
+          if (!cluster.get(c).addQuantityBen(sequenceStr, posRel, variants.size())) {
             throw new IllegalArgumentException();
           }
         }
         String sequenceAlt = variants.get(v).getSequence().substring(min, max, false);
         if (sequenceAlt.contains(patternCluster.pattern)) {
-          if (!cluster.get(c).addQuantityPat(sequenceAlt)) {
-            throw new IllegalArgumentException();
-          }
+//          if (!cluster.get(c).addQuantityPat(sequenceAlt)) {
+//            throw new IllegalArgumentException();
+//          }
         }
       }
     }

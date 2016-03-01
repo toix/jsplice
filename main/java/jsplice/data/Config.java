@@ -55,8 +55,8 @@ public class Config {
   public static final int distanceClusterMax = getLengthTrainingIntron() - lengthIntronPatternMax;
   public static final boolean multiClusterRel = false;
   public static final boolean simpleMerging = false;
-  public static final double mergingCorrelationMin = 0.8;
-  public static final boolean clusteringSub = false;
+  public static final double mergingCorrelationMin = 0.85;
+  public static final boolean clusteringSub = true;
   public static final boolean clusteringBasic = false;
   public static final String folder = "results/cluster"
       + (multiClusterRel ? "Rel" : "Std")
