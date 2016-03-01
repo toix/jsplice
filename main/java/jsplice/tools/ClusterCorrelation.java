@@ -17,11 +17,11 @@ public class ClusterCorrelation {
 
   private ArrayList<Cluster> cluster;
   private Variants variants;
-  private int[][] quantityClCl;
-  private int[] quantityCl;
+  private double[][] quantityClCl;
+  private double[] quantityCl;
   private double[][] correlation;
   private ArrayList<Integer> idx;
-  private boolean[][] matchingCluster;
+  private double[][] matchingCluster;
   private boolean[][] notMatchable;
 
   /**
@@ -41,7 +41,6 @@ public class ClusterCorrelation {
   }
 
   /**
-   * TODO slow
    * Count only the longest pattern of every cluster that the sequences contains
    * @param cluster
    * @param variants
@@ -49,10 +48,10 @@ public class ClusterCorrelation {
    */
   private double[][] createClusterCorrelationMatrix(Variants variants) {
     double[][] correlation = new double[cluster.size()][cluster.size()];
-    quantityClCl = new int[cluster.size()][cluster.size()];
-    quantityCl = new int[cluster.size()];
+    quantityClCl = new double[cluster.size()][cluster.size()];
+    quantityCl = new double[cluster.size()];
     int lengthIntronMax = Config.lengthIntronPatternMax;
-    matchingCluster = new boolean[cluster.size()][variants.size()];
+    matchingCluster = new double[cluster.size()][variants.size()];
     for (int c = 0; c < cluster.size(); c++) {
       cluster.get(c).resetQuantityBen();
     }
@@ -63,21 +62,22 @@ public class ClusterCorrelation {
         int min = posChange - lengthIntronMax + 1;
         int max = posChange + lengthIntronMax - 1;
         String sequenceStr = variants.get(v).getSequence().substring(min, max);
-        if (clusterC.isContainedBy(sequenceStr)) {
-          matchingCluster[c][v] = true;
-          quantityCl[c]++;
+        double rating = clusterC.getRatingMatch(sequenceStr);
+        if (rating > 0) {
+          matchingCluster[c][v] = rating;
+          quantityCl[c] += rating;
           int posRel = variants.get(v).getSequence().getPositionChangeRelative();
           if (!clusterC.addQuantityBen(sequenceStr, posRel, variants.size())) {
             throw new IllegalArgumentException();
           }
         } else {
-          matchingCluster[c][v] = false;
+          matchingCluster[c][v] = 0;
         }
       }
       for (int c1 = 0; c1 < matchingCluster.length; c1++) {
         for (int c2 = 0; c2 < matchingCluster.length; c2++) {
-          if (matchingCluster[c1][v] && matchingCluster[c2][v] && c1 != c2) {
-            quantityClCl[c1][c2]++;
+          if (matchingCluster[c2][v] > 0 && matchingCluster[c1][v] > 0 && c2 != c1) {
+            quantityClCl[c1][c2] += Math.sqrt(matchingCluster[c1][v] * matchingCluster[c2][v]);
           }
         }
       }
@@ -86,17 +86,18 @@ public class ClusterCorrelation {
       for (int c2 = 0; c2 < correlation[c1].length; c2++) {
         Cluster cl1 = cluster.get(c1);
         Cluster cl2 = cluster.get(c2);
-        int qty1 = quantityCl[c1];
-        int qty2 = quantityCl[c2];
+//        int lenMin = len1 < len2 ? len1 : len2;
+//        double qtyMax = qty1 > qty2 ? qty1 : qty2;
         int len1 = cl1.getPatternCore().pattern.length();
         int len2 = cl2.getPatternCore().pattern.length();
         int lenDif = Math.abs(len1 - len2);
-        int lenMin = len1 < len2 ? len1 : len2;
-        int qtyMin = qty1 < qty2 ? qty1 : qty2;
-        int qtyMax = qty1 > qty2 ? qty1 : qty2;
-        double divisor = (qtyMin + 0.1 * qtyMax) /1.1 / ((3. + lenMin)/(4. + lenMin) + 0.1) + (1. + lenDif) / (2. + lenDif) + (1. + qtyMin) / (2. + qtyMin);
-        if (divisor > 0) {
-          correlation[c1][c2] = quantityClCl[c1][c2] / divisor;
+        double dividend = quantityClCl[c1][c2];
+        double qty1 = quantityCl[c1];
+        double qty2 = quantityCl[c2];
+        double qtyMin = qty1 < qty2 ? qty1 : qty2;
+        double divisor = qtyMin + (0. + lenDif) / (1. + lenDif);
+        if (divisor > 0 && dividend > 0) {
+          correlation[c1][c2] = dividend / divisor;
         } else {
           correlation[c1][c2] = 0;
         }
@@ -125,50 +126,52 @@ public class ClusterCorrelation {
   public double[][] refresh(int newIdxP, int delIdxP) {
     int newIdx = idx.get(newIdxP);
     int delIdx = idx.get(delIdxP);
-    Cluster newCl = cluster.get(newIdx);
+    Cluster clusterNew = cluster.get(newIdx);
     int lengthIntronMax = Config.lengthIntronPatternMax;
     for (int c = 0; c < matchingCluster.length; c++) {
       quantityClCl[newIdx][c] = 0;
       quantityClCl[c][newIdx] = 0;
     }
     quantityCl[newIdx] = 0;
-    newCl.resetQuantityBen();
+    clusterNew.resetQuantityBen();
     for (int v = 0; v < variants.size(); v++) {
       int posChange = variants.get(v).getSequence().getPositionChange();
       int min = posChange - lengthIntronMax + 1;
       int max = posChange + lengthIntronMax - 1;
       String sequenceStr = variants.get(v).getSequence().substring(min, max);
-      if (newCl.isContainedBy(sequenceStr)) {
-        matchingCluster[newIdx][v] = true;
-        quantityCl[newIdx]++;
+      double rating = clusterNew.getRatingMatch(sequenceStr);
+      if (rating > 0) {
+        matchingCluster[newIdx][v] = rating;
+        quantityCl[newIdx] += rating;
         int posRel = variants.get(v).getSequence().getPositionChangeRelative();
-        if (!newCl.addQuantityBen(sequenceStr, posRel, variants.size())) {
+        if (!clusterNew.addQuantityBen(sequenceStr, posRel, variants.size())) {
           throw new IllegalArgumentException();
         }
       } else {
-        matchingCluster[newIdx][v] = false;
+        matchingCluster[newIdx][v] = 0;
       }
       for (int c = 0; c < matchingCluster.length; c++) {
-        if (matchingCluster[c][v] && matchingCluster[newIdx][v] && c != newIdx) {
-          quantityClCl[newIdx][c]++;
-          quantityClCl[c][newIdx]++;
+        if (matchingCluster[c][v] > 0 && matchingCluster[newIdx][v] > 0 && c != newIdx) {
+          quantityClCl[newIdx][c] += Math.sqrt(matchingCluster[newIdx][v] * matchingCluster[c][v]);
+          quantityClCl[c][newIdx] += Math.sqrt(matchingCluster[newIdx][v] * matchingCluster[c][v]);
         }
       }
     }
     for (int c = 0; c < correlation.length; c++) {
       Cluster clC = cluster.get(c);
-      int qty1 = quantityCl[newIdx];
-      int qty2 = quantityCl[c];
-      int len1 = newCl.getPatternCore().pattern.length();
+//      int lenMin = len1 < len2 ? len1 : len2;
+//      double qtyMax = qty1 > qty2 ? qty1 : qty2;
+      int len1 = clusterNew.getPatternCore().pattern.length();
       int len2 = cluster.get(c).getPatternCore().pattern.length();
       int lenDif = Math.abs(len1 - len2);
-      int lenMin = len1 < len2 ? len1 : len2;
-      int qtyMin = (qty1 < qty2 ? qty1 : qty2);
-      int qtyMax = qty1 > qty2 ? qty1 : qty2;
-      double divisor = (qtyMin + 0.1 * qtyMax) /1.1 / ((3. + lenMin)/(4. + lenMin) + 0.1) + (1. + lenDif) / (2. + lenDif) + (1. + qtyMin) / (2. + qtyMin);
-      if (divisor > 0) {
-        correlation[c][newIdx] = quantityClCl[c][newIdx] / divisor;
-        correlation[newIdx][c] = quantityClCl[newIdx][c] / divisor;
+      double qty1 = quantityCl[newIdx];
+      double qty2 = quantityCl[c];
+      double qtyMin = (qty1 < qty2 ? qty1 : qty2);
+      double divisor = qtyMin + (0. + lenDif) / (1. + lenDif);      
+      double dividend = quantityClCl[newIdx][c];
+      if (divisor > 0 && dividend > 0) {
+        correlation[c][newIdx] = dividend / divisor;
+        correlation[newIdx][c] = dividend / divisor;
       } else {
         correlation[c][newIdx] = 0;
         correlation[newIdx][c] = 0;

@@ -50,6 +50,10 @@ public class PatternMotif implements Comparable<PatternMotif>{
   public String toString() {
     return pattern + " " + quantityBen + " " + quantityRef + " " + getQuantityRefRelative();
   }
+  
+  public String toString(int variantSize) {
+    return pattern + " " + quantityBen + " " + getQuantityBenRelative(variantSize) + " " + quantityRef + " " + getQuantityRefRelative();
+  }
 
   /* (non-Javadoc)
    * @see java.lang.Object#equals()
@@ -101,15 +105,33 @@ public class PatternMotif implements Comparable<PatternMotif>{
     return (double) quantityRef / (quantityAlt + 1);
   }
 
-  public double getQuantityBenRelative(int variantsSize) {
+  public double getQuantityBenRelative(int variantSize) {
     int lengthPatternMax = Config.lengthIntronPatternMax;
     int lengthPattern = pattern.length();
     int possibleOccurances = lengthPatternMax - (lengthPattern - 1);
     double possibleCombinations = Math.pow(4, lengthPattern);
-    double relativeQuantity = ((quantityBen - 1.) / variantsSize) * (possibleCombinations / possibleOccurances);
+    double relativeQuantity = ((quantityBen - 1.) / variantSize) * (possibleCombinations / possibleOccurances);
     return relativeQuantity;
   }
+  
+  public double getQuantityFactor(){
+    int lengthPatternMax = Config.lengthIntronPatternMax;
+    int lengthPattern = pattern.length();
+    int possibleOccurances = lengthPatternMax - (lengthPattern - 1);
+    double possibleCombinations = Math.pow(4, lengthPattern);
+    return possibleCombinations / possibleOccurances;
+  }
 
+  /**
+   * @param patternP
+   * @return
+   */
+  public boolean containsOnce(PatternMotif patternP) {
+    int pos = pattern.indexOf(patternP.pattern);
+    int posLast = pattern.lastIndexOf(patternP.pattern);
+    return pos == posLast;
+  }
+  
   /**
    * @param patternP
    * @return

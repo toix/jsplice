@@ -378,7 +378,6 @@ public class Functions {
 	}
 
   /**
-   * TODO better -> higher value
    * @param matrix1
    * @param matrix2
    * @return
@@ -387,21 +386,21 @@ public class Functions {
     if (matrix1.length != matrix2.length) {
       throw new IllegalArgumentException("Both strings must have same length.");
     }
-    double distance = 0;
-    for (int p = 0; p < matrix1.length; p++) {
-      double distanceSum = 0;
-      if (sum(matrix1[p]) > 0) {
-        for (int b = 0; b < matrix1[p].length; b++) {
-          distanceSum += 1 - Math.abs(matrix1[p][b] - matrix2[p][b]);
+    double similarity = 0;
+    for (int l = 0; l < matrix1.length; l++) {
+      double similaritySum = 0;
+        for (int b = 0; b < matrix1[l].length; b++) {
+          double sumMatrix = matrix1[l][b] + matrix2[l][b];
+          if (sumMatrix > 0) {
+            similaritySum += sumMatrix;
+          }
         }
-        // System.out.println(matrix1[p][b] - matrix2[p][b]);
-      }
       // System.out.println(Functions.arrayToString(matrix1[p], 1));
 //      System.out.println(Functions.arrayToString(matrix2[p], 1));
 //      System.out.println("add: " + distanceSum / matrix1[p].length);
-      distance += distanceSum / matrix1[p].length;
+      similarity += similaritySum / matrix1[l].length;
     }
-    return distance;
+    return similarity;
   }
   /**
    * @param list
