@@ -56,7 +56,7 @@ public class Config {
   public static final boolean multiClusterRel = false;
   public static final boolean simpleMerging = false;
   public static final double mergingCorrelationMin = 1.0;
-  public static final boolean clusteringSub = false;
+  public static final boolean clusteringSub = true;
   public static final boolean clusteringBasic = false;
   public static final String folder = "results/cluster"
       + (multiClusterRel ? "Rel" : "Std")

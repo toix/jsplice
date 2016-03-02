@@ -86,21 +86,11 @@ public class ClusterCorrelation {
       for (int c2 = 0; c2 < correlation[c1].length; c2++) {
         Cluster cl1 = cluster.get(c1);
         Cluster cl2 = cluster.get(c2);
-//        int lenMin = len1 < len2 ? len1 : len2;
-//        double qtyMax = qty1 > qty2 ? qty1 : qty2;
-        int len1 = cl1.getPatternCore().pattern.length();
-        int len2 = cl2.getPatternCore().pattern.length();
-        int lenDif = Math.abs(len1 - len2);
-        double dividend = quantityClCl[c1][c2];
-        double qty1 = quantityCl[c1];
-        double qty2 = quantityCl[c2];
-        double qtyMin = qty1 < qty2 ? qty1 : qty2;
-        double divisor = qtyMin + (0. + lenDif) / (1. + lenDif);
-        if (divisor > 0 && dividend > 0) {
-          correlation[c1][c2] = dividend / divisor;
-        } else {
-          correlation[c1][c2] = 0;
+        if (cl1.contains("ACTTTTTTGATG") || cl2.contains("ACTTTTTTGATG")) {
+          cl1.size();
         }
+        correlation[c1][c2] = getCorrelation(c1, c2);
+        
 //        Cluster cl1 = cluster.get(c1);
 //        Cluster cl2 = cluster.get(c2);
 //        int matchingCharsCore = Functions.countMatchingChar(cl1.getPatternCore().pattern, cl2.getPatternCore().pattern);
@@ -158,28 +148,37 @@ public class ClusterCorrelation {
       }
     }
     for (int c = 0; c < correlation.length; c++) {
-      Cluster clC = cluster.get(c);
-//      int lenMin = len1 < len2 ? len1 : len2;
-//      double qtyMax = qty1 > qty2 ? qty1 : qty2;
-      int len1 = clusterNew.getPatternCore().pattern.length();
-      int len2 = cluster.get(c).getPatternCore().pattern.length();
-      int lenDif = Math.abs(len1 - len2);
-      double qty1 = quantityCl[newIdx];
-      double qty2 = quantityCl[c];
-      double qtyMin = (qty1 < qty2 ? qty1 : qty2);
-      double divisor = qtyMin + (0. + lenDif) / (1. + lenDif);      
-      double dividend = quantityClCl[newIdx][c];
-      if (divisor > 0 && dividend > 0) {
-        correlation[c][newIdx] = dividend / divisor;
-        correlation[newIdx][c] = dividend / divisor;
-      } else {
-        correlation[c][newIdx] = 0;
-        correlation[newIdx][c] = 0;
-      }
+      correlation[c][newIdx] = getCorrelation(newIdx, c);
+      correlation[newIdx][c] = correlation[c][newIdx];
     }
     idx.remove(new Integer(delIdx));
     return getCurrentCorrelation();
   }
+
+  /**
+     * @param c1
+     * @param c2
+     * @return
+     */
+    private double getCorrelation(int c1, int c2) {
+      Cluster cl1 = cluster.get(c1);
+      Cluster cl2 = cluster.get(c2);
+  //    int lenMin = len1 < len2 ? len1 : len2;
+  //    double qtyMax = qty1 > qty2 ? qty1 : qty2;
+      int len1 = cl1.getPatternCore().pattern.length();
+      int len2 = cl2.getPatternCore().pattern.length();
+      int lenMin = len1 > len2 ? len1 : len2;
+      double dividend = quantityClCl[c1][c2];
+      double qty1 = quantityCl[c1];
+      double qty2 = quantityCl[c2];
+      double qtyMin = qty1 < qty2 ? qty1 : qty2;
+      double divisor = qtyMin * (1.8 - (1. + lenMin)/(2. + lenMin));
+      if (divisor > 0 && dividend > 0) {
+        return dividend / divisor;
+      } else {
+        return 0;
+      }
+    }
 
   /**
    * TODO delete parts
@@ -198,7 +197,7 @@ public class ClusterCorrelation {
   /**
    * @return
    */
-  private double[][] getCurrentCorrelation() {
+  public double[][] getCurrentCorrelation() {
     double[][] correlation = new double[idx.size()][idx.size()];
     for (int c1 = 0; c1 < idx.size(); c1++) {
       for (int c2 = 0; c2 < idx.size(); c2++) {

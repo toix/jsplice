@@ -423,9 +423,7 @@ public class Model implements Runnable {
   }
 
   public String probabilityToString() {
-    System.out.println();
-    System.out.println("probability");
-    String probStr = 0 + " \t" + Functions.arrayToString(probability[0], 3);
+    String probStr = "\nprobability\n" + 0 + "\t " + Functions.arrayToString(probability[0], 3);
     for (int i = 1; i < probability.length; i++) {
       probStr = probStr + "\n" + i + " \t" + Functions.arrayToString(probability[i], 3);
     }
@@ -433,9 +431,7 @@ public class Model implements Runnable {
   }
 
   public String correlationToString() {
-    System.out.println();
-    System.out.println("correlation");
-    String corStr = 0 + " \t" + Functions.arrayToString(correlation[0], 4);
+    String corStr = "\ncorrelation\n" + 0 + "\t " + Functions.arrayToString(correlation[0], 4);
     for (int i = 1; i < correlation.length; i++) {
       corStr = corStr + "\n" + i + " \t" + Functions.arrayToString(correlation[i], 4);
     }
@@ -553,12 +549,28 @@ public class Model implements Runnable {
       cluster = mergeCluster(cluster, variantsP);
 //      Log.add("merged: " + cluster, 2);
     }
+      cluster = removeZeroCluster(cluster);
     cluster = countClusterInSequences(cluster, variantsP);
 //    Log.add("Ben count: " + cluster, 2);
     HashMap<String, Cluster> clusterHash = createHash(cluster);
     Log.add("Created " + cluster.size() + " cluster with " + variantsP.size() + " variants for " + (benign? "benign " : "pathogene ") + (acceptorP? "acceptor" : "donor") + " sequences", 3);
     Log.add(cluster, 2);
     return clusterHash;
+  }
+
+  /**
+   * @param List of Cluster that where present in clustering process
+   * @return
+   */
+  private static ArrayList<Cluster> removeZeroCluster(ArrayList<Cluster> clusterP) {
+    ArrayList<Cluster> clusterNew = new ArrayList<Cluster>();
+    for (int c = 0; c < clusterP.size(); c++) {
+      Cluster cl = clusterP.get(c);
+      if (cl.getPatternCore().getQuantityBen() > 0) {
+        clusterNew.add(cl);
+      }
+    }
+    return clusterNew;
   }
 
   /**

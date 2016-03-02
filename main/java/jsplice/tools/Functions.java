@@ -378,31 +378,6 @@ public class Functions {
 	}
 
   /**
-   * @param matrix1
-   * @param matrix2
-   * @return
-   */
-  public static double probabilityMatrixSimilarity(double[][] matrix1, double[][] matrix2) {
-    if (matrix1.length != matrix2.length) {
-      throw new IllegalArgumentException("Both strings must have same length.");
-    }
-    double similarity = 0;
-    for (int l = 0; l < matrix1.length; l++) {
-      double similaritySum = 0;
-        for (int b = 0; b < matrix1[l].length; b++) {
-          double sumMatrix = matrix1[l][b] + matrix2[l][b];
-          if (sumMatrix > 0) {
-            similaritySum += sumMatrix;
-          }
-        }
-      // System.out.println(Functions.arrayToString(matrix1[p], 1));
-//      System.out.println(Functions.arrayToString(matrix2[p], 1));
-//      System.out.println("add: " + distanceSum / matrix1[p].length);
-      similarity += similaritySum / matrix1[l].length;
-    }
-    return similarity;
-  }
-  /**
    * @param list
    */
   public static double mean(ArrayList<Integer> list) {

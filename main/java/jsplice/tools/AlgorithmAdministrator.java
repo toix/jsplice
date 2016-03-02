@@ -249,7 +249,7 @@ public class AlgorithmAdministrator {
 	      } catch (InterruptedException e) {
 	        e.printStackTrace();
 	      }
-	    } while(Thread.activeCount() > Runtime.getRuntime().availableProcessors());
+	    } while(Thread.activeCount() >1);// Runtime.getRuntime().availableProcessors());
 	  }
 	  do {
         try {

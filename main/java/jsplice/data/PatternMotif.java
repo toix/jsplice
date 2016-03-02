@@ -19,7 +19,6 @@ public class PatternMotif implements Comparable<PatternMotif>{
   public String pattern;
   public int quantityRef;
   public int quantityAlt;
-  private int quantityBen = 0;
   public int quantityPat;
   public int shift;
   private ArrayList<Integer> positions;
@@ -32,27 +31,32 @@ public class PatternMotif implements Comparable<PatternMotif>{
     this.quantityRef = quantityAbsP;
     this.quantityAlt = quantityConP;
     this.shift = shiftP;
+    positions = new ArrayList<Integer>();
   }
 
+  @SuppressWarnings("unchecked")
   public PatternMotif(PatternMotif patternP) {
     this.pattern = patternP.pattern;
     this.quantityRef = patternP.quantityRef;
     this.quantityAlt = patternP.quantityAlt;
-    this.quantityBen = patternP.quantityBen;
     this.quantityPat = patternP.quantityPat;
     this.shift = patternP.shift;
-    this.positions = new ArrayList<Integer>();
+    if (positions != null) {
+      this.positions = (ArrayList<Integer>) patternP.positions.clone();
+    } else {
+      positions = new ArrayList<Integer>();
+    }
   }
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */
   @Override
   public String toString() {
-    return pattern + " " + quantityBen + " " + quantityRef + " " + getQuantityRefRelative();
+    return pattern + " sh: " + shift + " " + getQuantityBen() + " " + quantityRef + " " + getQuantityRefRelative();
   }
   
   public String toString(int variantSize) {
-    return pattern + " " + quantityBen + " " + getQuantityBenRelative(variantSize) + " " + quantityRef + " " + getQuantityRefRelative();
+    return pattern + " " + getQuantityBen() + " " + getQuantityBenRelative(variantSize) + " " + quantityRef + " " + getQuantityRefRelative();
   }
 
   /* (non-Javadoc)
@@ -69,10 +73,10 @@ public class PatternMotif implements Comparable<PatternMotif>{
       PatternMotif patternMotif = (PatternMotif) patternP;
       return this.pattern.equals(patternMotif.pattern);
     }
-//    else if ((patternP instanceof String)) {
-//      String str = (String) patternP;
-//      return this.pattern.equals(str);
-//    }
+    else if ((patternP instanceof String)) {
+      String str = (String) patternP;
+      return this.pattern.equals(str);
+    }
     return super.equals(patternP);
   }
 
@@ -90,15 +94,8 @@ public class PatternMotif implements Comparable<PatternMotif>{
     return pattern.length();
   }
 
-  public void addQuantityBen() {
-    this.quantityBen++;
-  }
-
-  /**
-   * @param posRel
-   */
-  public void addPos(int posRel) {
-    positions.add(posRel);
+  public void addQuantityBen(int posRel) {
+    this.positions.add(posRel);
   }
 
   public double getQuantityRefRelative() {
@@ -110,7 +107,7 @@ public class PatternMotif implements Comparable<PatternMotif>{
     int lengthPattern = pattern.length();
     int possibleOccurances = lengthPatternMax - (lengthPattern - 1);
     double possibleCombinations = Math.pow(4, lengthPattern);
-    double relativeQuantity = ((quantityBen - 1.) / variantSize) * (possibleCombinations / possibleOccurances);
+    double relativeQuantity = ((getQuantityBen() - 1.) / variantSize) * (possibleCombinations / possibleOccurances);
     return relativeQuantity;
   }
   
@@ -128,6 +125,9 @@ public class PatternMotif implements Comparable<PatternMotif>{
    */
   public boolean containsOnce(PatternMotif patternP) {
     int pos = pattern.indexOf(patternP.pattern);
+    if (pos == -1) {
+      return false;
+    }
     int posLast = pattern.lastIndexOf(patternP.pattern);
     return pos == posLast;
   }
@@ -149,7 +149,7 @@ public class PatternMotif implements Comparable<PatternMotif>{
   }
 
   public int getQuantityBen() {
-    return quantityBen;
+    return positions.size();
   }
   
   public double getPosition() {
@@ -157,14 +157,7 @@ public class PatternMotif implements Comparable<PatternMotif>{
     return pos;
   }
 
-  public void resetQuantityBen() {
-    this.quantityBen = 0;
-  }
-
-  /**
-   * 
-   */
-  public void resetPositions() {
+  public void resetQuantityBenPositions() {
     this.positions = new ArrayList<Integer>();
   }
 
@@ -202,7 +195,7 @@ public class PatternMotif implements Comparable<PatternMotif>{
    * @param pat2
    * @return
    */
-  public static int align(PatternMotif pat1, PatternMotif pat2){
+  private static int align(PatternMotif pat1, PatternMotif pat2){
     int matchesMax = 0;
     int posMax = Integer.MIN_VALUE;
 //    String str1 = pattern1.pattern;
@@ -231,6 +224,9 @@ public class PatternMotif implements Comparable<PatternMotif>{
           Log.add(posMax + " and " + pos + " are both matching " + matches + " characters.", 2);
         }
       }
+    }
+    if (Math.abs(posMax) > 9) {
+      posMax = posMax;
     }
     return posMax;
   }
@@ -261,6 +257,9 @@ public class PatternMotif implements Comparable<PatternMotif>{
       } else if (matches > 0 && matches == matchesMax) {
 //        Log.add(posMax + " and " + pos + " are both matching " + matches + " characters.", 2);
       }
+    }
+    if (Math.abs(posMax) > 9) {
+      posMax = posMax;
     }
     return posMax;
   }
