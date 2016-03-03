@@ -1,6 +1,7 @@
 package jsplice.io;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.regex.Pattern;
 
@@ -104,7 +105,6 @@ public class Variants {
 
 	/**
 	 * Creates a HashMap that stores the Variants by start position
-	 * 
 	 * @param variant
 	 * @return false - if the hash already contained a variant with the same parameters
 	 * @throws UnexpectedException 
@@ -154,6 +154,9 @@ public class Variants {
 			variantHash.put(start, hashByChr);
 			return true;
 		}
+	}
+	public void shuffle() {
+	  Collections.shuffle(variants);
 	}
 
 	/*

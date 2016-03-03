@@ -45,17 +45,12 @@ public class Config {
    * The maximum length of the pattern for clustering
    */
   public static final int lengthIntronPatternMax = 12;
-  // /**
-  // * Threshold for the difference of the sum of the individual information between reference and
-  // alternate
-  // */
-  // private static double thresholdAltRef = 2;
   public static final int distanceClusterMinAcceptor = 4;
   public static final int distanceClusterMinDonor = 6;
   public static final int distanceClusterMax = getLengthTrainingIntron() - lengthIntronPatternMax;
-  public static final boolean multiClusterRel = false;
+  public static final boolean multiClusterRel = true;
   public static final boolean simpleMerging = false;
-  public static final double mergingCorrelationMin = 1.0;
+  public static final double mergingCorrelationMin = 2.0;
   public static final boolean clusteringSub = true;
   public static final boolean clusteringBasic = false;
   public static final String folder = "results/cluster"
@@ -236,7 +231,7 @@ public class Config {
 			return getLengthTrainingSequence()-1 - (getLengthTrainingExon() - getLengthModelExon()) - getLengthModelIntron();
 		}
 	}
-	public static boolean isUseGrch38() {
+	public static boolean useGrch38() {
 		return useGrch38;
 	}
 	

@@ -237,6 +237,8 @@ public class AlgorithmAdministrator {
 	 * 
 	 */
 	private static void crossValidate(Variants variantsPathogene, Variants variantsBenign, boolean acceptorP, String folder) {
+	  variantsPathogene.shuffle();
+	  variantsBenign.shuffle();
 	  int steps = Config.crossValidationSteps + 1;
 	  for (int i = 1; i < steps; i++) {
 	    CrossValidation crossVal = new CrossValidation(variantsPathogene, variantsBenign, acceptorP, folder, i);
@@ -245,11 +247,11 @@ public class AlgorithmAdministrator {
 	    thr.start();
 	    do {
 	      try {
-	        Thread.sleep(200);
+	        Thread.sleep(500);
 	      } catch (InterruptedException e) {
 	        e.printStackTrace();
 	      }
-	    } while(Thread.activeCount() >1);// Runtime.getRuntime().availableProcessors());
+	    } while(Thread.activeCount() > Runtime.getRuntime().availableProcessors() - 1);
 	  }
 	  do {
         try {

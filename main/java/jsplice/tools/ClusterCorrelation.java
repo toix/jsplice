@@ -53,7 +53,9 @@ public class ClusterCorrelation {
     int lengthIntronMax = Config.lengthIntronPatternMax;
     matchingCluster = new double[cluster.size()][variants.size()];
     for (int c = 0; c < cluster.size(); c++) {
-      cluster.get(c).resetQuantityBen();
+      Cluster cl = cluster.get(c);
+      cl.sortPattern(PatternComp.desc(AttrPat.LENGTH), AttrPat.QTY_BEN_REL); // TODO ben is not there
+      cl.resetQuantityBen();
     }
     for (int v = 0; v < variants.size(); v++) {
       for (int c = 0; c < cluster.size(); c++) {
@@ -67,7 +69,7 @@ public class ClusterCorrelation {
           matchingCluster[c][v] = rating;
           quantityCl[c] += rating;
           int posRel = variants.get(v).getSequence().getPositionChangeRelative();
-          if (!clusterC.addQuantityBen(sequenceStr, posRel, variants.size())) {
+          if (!clusterC.addQuantityBen(sequenceStr, posRel)) {
             throw new IllegalArgumentException();
           }
         } else {
@@ -121,6 +123,7 @@ public class ClusterCorrelation {
     for (int c = 0; c < matchingCluster.length; c++) {
       quantityClCl[newIdx][c] = 0;
       quantityClCl[c][newIdx] = 0;
+      cluster.get(c).sortPattern(PatternComp.desc(AttrPat.LENGTH), AttrPat.QTY_BEN_REL);
     }
     quantityCl[newIdx] = 0;
     clusterNew.resetQuantityBen();
@@ -134,7 +137,7 @@ public class ClusterCorrelation {
         matchingCluster[newIdx][v] = rating;
         quantityCl[newIdx] += rating;
         int posRel = variants.get(v).getSequence().getPositionChangeRelative();
-        if (!clusterNew.addQuantityBen(sequenceStr, posRel, variants.size())) {
+        if (!clusterNew.addQuantityBen(sequenceStr, posRel)) {
           throw new IllegalArgumentException();
         }
       } else {
@@ -172,7 +175,7 @@ public class ClusterCorrelation {
       double qty1 = quantityCl[c1];
       double qty2 = quantityCl[c2];
       double qtyMin = qty1 < qty2 ? qty1 : qty2;
-      double divisor = qtyMin * (1.8 - (1. + lenMin)/(2. + lenMin));
+      double divisor = qtyMin * (1.8 - (1. + lenMin)/(3. + lenMin));
       if (divisor > 0 && dividend > 0) {
         return dividend / divisor;
       } else {

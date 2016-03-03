@@ -106,7 +106,7 @@ public class ClinVarFile extends Variants {
 		Matcher hgvsMatcher = relevantLines.matcher(variantLine[18]);
 		boolean hgvsMatches = nameMatcher.matches() || hgvsMatcher.matches();
 		// Variant has chosen assembly version?
-		boolean validAssembly = Config.isUseGrch38() == (variantLine[12].equals("GRCh38"));
+		boolean validAssembly = Config.useGrch38() == (variantLine[12].equals("GRCh38"));
 		// correct clinical significance?
 		final ArrayList<String> checkClinicalSignificance;
 		if (benign) {
@@ -121,7 +121,7 @@ public class ClinVarFile extends Variants {
 		}
 		if (hgvsMatches && validAssembly && correctSignificance) {
 			try {
-				variants.add(new ClinVariant(variantLine, Config.isUseGrch38(), benign));
+				variants.add(new ClinVariant(variantLine, Config.useGrch38(), benign));
 			} catch (java.lang.NumberFormatException e) {
 				Log.add(e.getMessage(), 2);
 				missingVariantIDs.add(Integer.parseInt(variantLine[24]));

@@ -89,7 +89,7 @@ public class ClinVariant extends Variant {
 	 * Pattern for Substitutions
 	 * NM_ - Prefix of RefSeq mRNA accession number
 	 */
-	final Pattern checkSubstitution = Pattern
+	final Pattern SUBSTITUTION = Pattern
 			.compile("^NM_[0-9]{6,9}\\.[1-9][0-9]?:c\\."
 					+ "[1-9][0-9]*[+-][1-9][0-9]*"
 					+ "([ACGT]>[ACGT])$");
@@ -98,7 +98,7 @@ public class ClinVariant extends Variant {
 	 * NM_ is the Prefix of RefSeq mRNA accession number </br>
 	 * (no Inversions and no Translocations) </br>
 	 */
-	final Pattern checkOtherHGVS = Pattern
+	final Pattern HGVS = Pattern
 	.compile("^NM_[0-9]{6,9}\\.[1-9][0-9]?:c\\."
 			+ "([1-9][0-9]*[+-][1-9][0-9]*(_[1-9][0-9]*([+-][1-9][0-9]*)?)?"		// 0+0(_0(+0))
 			+ "|[1-9][0-9]*_[1-9][0-9]*[+-][1-9][0-9]*)"							// 0_0+0
@@ -133,15 +133,15 @@ public class ClinVariant extends Variant {
 		if(Pattern.matches(".*(del|dup)[0-9]*$", lines[18]))
 			lines[18].replaceAll("[0-9]*$", "");
 		// check for single nucleotide splice variant or throw exception
-		if(!checkSubstitution.matcher(lines[18]).matches())// && !checkOtherHGVS.matcher(annotationLine[18]).matches())
+		if(!SUBSTITUTION.matcher(lines[18]).matches())// && !checkOtherHGVS.matcher(annotationLine[18]).matches())
 			throw new IllegalArgumentException("Illegal HGVS or non-intronic mutation: " + lines[18] + "\t AlleleID: " + lines[0]);
 		// allele ID
 		alleleId = Integer.parseInt(lines[0]);
 		// type
-		final ArrayList<String> checkType = new ArrayList<String>(Arrays.asList("copy number gain", "copy number loss",
+		final ArrayList<String> TYPE = new ArrayList<String>(Arrays.asList("copy number gain", "copy number loss",
 				"indel", "duplication", "fusion", "deletion", "insertion", "inversion", "NT expansion", "protein only",
 				"short repeat", "single nucleotide variant", "structural variant", "undetermined variant"));
-		if (checkType.contains(lines[1]))
+		if (TYPE.contains(lines[1]))
 			type = lines[1];
 		else
 			throw new IllegalArgumentException("Illegal Type: " + lines[1] + "\t AlleleID: " + lines[0]);
@@ -155,15 +155,15 @@ public class ClinVariant extends Variant {
 //		final ArrayList<String> checkClinicalSignificance = new ArrayList<String>(Arrays.asList("association",
 //				"Benign", "Likely benign", "Pathogenic", "Likely pathogenic", "risk factor", "drug response",
 //				"protective", "Uncertain significance", "other", "confers sensitivity", "not provided"));
-		final ArrayList<String> checkClinicalSignificance;
+		final ArrayList<String> SIGNIFICANCE;
 		if (benign) {
-			checkClinicalSignificance = new ArrayList<String>(Arrays.asList("Benign", "Likely benign"));
+			SIGNIFICANCE = new ArrayList<String>(Arrays.asList("Benign", "Likely benign"));
 		} else {
-			checkClinicalSignificance = new ArrayList<String>(Arrays.asList("Pathogenic", "Likely pathogenic", "risk factor"));
+			SIGNIFICANCE = new ArrayList<String>(Arrays.asList("Pathogenic", "Likely pathogenic", "risk factor"));
 		}
 		String[] clinicalSignificanceTemp = lines[5].split(";");
 		for (int i = 0; i < clinicalSignificanceTemp.length; i++) {
-			if (checkClinicalSignificance.contains(clinicalSignificanceTemp[i])) {
+			if (SIGNIFICANCE.contains(clinicalSignificanceTemp[i])) {
 				clinicalSignificance.add(clinicalSignificanceTemp[i]);
 			}
 		}
@@ -192,11 +192,11 @@ public class ClinVariant extends Variant {
 		// phenotype IDs
 		phenotypeIDs = new ArrayList<String>(Arrays.asList(lines[10].split(",")));
 		// Origin
-		final ArrayList<String> checkOrigin = new ArrayList<String>(Arrays.asList("germline", "biparental", "de novo",
+		final ArrayList<String> ORIGIN = new ArrayList<String>(Arrays.asList("germline", "biparental", "de novo",
 				"maternal", "paternal", "somatic", "inherited", "unknown", "not provided", "tested-inconclusive"));
 		origin = new ArrayList<String>(Arrays.asList(lines[11].split(";")));
 		for (int i = 0; i < origin.size(); i++) {
-			if (!checkOrigin.contains(origin.get(i)))
+			if (!ORIGIN.contains(origin.get(i)))
 				throw new IllegalArgumentException("Illegal origin: " + lines[11] + "\t AlleleID: " + lines[0]);
 		}
 		// assembly
@@ -218,12 +218,12 @@ public class ClinVariant extends Variant {
 			Log.add(e.getMessage(), 1);
 		}
 		// review status
-		final ArrayList<String> checkReviewStatus = new ArrayList<String>(Arrays.asList("expert panel", "reviewed by expert panel",
+		final ArrayList<String> REVIEW = new ArrayList<String>(Arrays.asList("expert panel", "reviewed by expert panel",
 				"professional society", "multiple submitters", "single submitter", "criteria provided", "no conflicts",
 				"practice guideline", "conflicting interpretations", "no assertion criteria provided"));
 		String[] reviewStatusTemp = lines[17].split(", ");
 		for (int i = 0; i < reviewStatusTemp.length; i++) {
-			if (checkReviewStatus.contains(reviewStatusTemp[i])) {
+			if (REVIEW.contains(reviewStatusTemp[i])) {
 				reviewStatus.add(reviewStatusTemp[i]);
 			}
 		}

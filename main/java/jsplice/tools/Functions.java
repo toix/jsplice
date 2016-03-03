@@ -387,5 +387,15 @@ public class Functions {
     double count = sum(list);
     return count / list.size();
   }
+  /**
+   * @return weight matrix as String
+   */
+  public static String matrixToString(double[][] matrix, String title) {
+    String matrixString = title + "\n" + 0 + " \t" + Functions.arrayToString(matrix[0], 3);
+    for (int i = 1; i < matrix.length; i++) {
+      matrixString = matrixString + "\n" + i + " \t" + Functions.arrayToString(matrix[i], 3);
+    }
+    return matrixString;
+  }
 }
 

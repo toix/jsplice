@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import jsplice.exception.Log;
+import jsplice.tools.Cluster;
 import jsplice.tools.Functions;
 
 /**
@@ -22,15 +23,17 @@ public class PatternMotif implements Comparable<PatternMotif>{
   public int quantityPat;
   public int shift;
   private ArrayList<Integer> positions;
+  private Cluster cluster;
 
   /**
    * 
    */
-  public PatternMotif(String patternP, int quantityAbsP, int quantityConP, int shiftP) {
+  public PatternMotif(String patternP, int quantityAbsP, int quantityConP, int shiftP, Cluster clusterP) {
     this.pattern = patternP;
     this.quantityRef = quantityAbsP;
     this.quantityAlt = quantityConP;
     this.shift = shiftP;
+    this.cluster = clusterP;
     positions = new ArrayList<Integer>();
   }
 
@@ -41,6 +44,7 @@ public class PatternMotif implements Comparable<PatternMotif>{
     this.quantityAlt = patternP.quantityAlt;
     this.quantityPat = patternP.quantityPat;
     this.shift = patternP.shift;
+    this.cluster = patternP.cluster;
     if (positions != null) {
       this.positions = (ArrayList<Integer>) patternP.positions.clone();
     } else {
@@ -52,13 +56,9 @@ public class PatternMotif implements Comparable<PatternMotif>{
    */
   @Override
   public String toString() {
-    return pattern + " sh: " + shift + " " + getQuantityBen() + " " + quantityRef + " " + getQuantityRefRelative();
+    return pattern + " " + getQuantityBen() + " " + getQuantityBenRelative() + " " + quantityRef + " " + getQuantityRefRelative();
   }
   
-  public String toString(int variantSize) {
-    return pattern + " " + getQuantityBen() + " " + getQuantityBenRelative(variantSize) + " " + quantityRef + " " + getQuantityRefRelative();
-  }
-
   /* (non-Javadoc)
    * @see java.lang.Object#equals()
    */
@@ -102,16 +102,21 @@ public class PatternMotif implements Comparable<PatternMotif>{
     return (double) quantityRef / (quantityAlt + 1);
   }
 
-  public double getQuantityBenRelative(int variantSize) {
-    int lengthPatternMax = Config.lengthIntronPatternMax;
-    int lengthPattern = pattern.length();
-    int possibleOccurances = lengthPatternMax - (lengthPattern - 1);
-    double possibleCombinations = Math.pow(4, lengthPattern);
-    double relativeQuantity = ((getQuantityBen() - 1.) / variantSize) * (possibleCombinations / possibleOccurances);
+  public double getQuantityBenRelative() {
+    if (getQuantityBen() < 2) {
+      return 0;
+    }
+    double relativeQuantity = ((getQuantityBen() - 1.) / cluster.variantSize()) * getRandomOccuranceProbability();
+    if (relativeQuantity < 0) {
+      System.out.println();
+    }
     return relativeQuantity;
   }
   
-  public double getQuantityFactor(){
+  /**
+   * @return The relevance of the pattern depending on its length
+   */
+  public double getRandomOccuranceProbability(){
     int lengthPatternMax = Config.lengthIntronPatternMax;
     int lengthPattern = pattern.length();
     int possibleOccurances = lengthPatternMax - (lengthPattern - 1);
@@ -259,7 +264,7 @@ public class PatternMotif implements Comparable<PatternMotif>{
       }
     }
     if (Math.abs(posMax) > 9) {
-      posMax = posMax;
+      int x;
     }
     return posMax;
   }
@@ -269,5 +274,21 @@ public class PatternMotif implements Comparable<PatternMotif>{
    */
   public ArrayList<Integer> getPositions() {
     return positions;
+  }
+
+  /**
+   * @return
+   */
+  public double getQuantityRef() {
+    return quantityRef;
+  }
+
+  /**
+   * @param clusterP
+   * @return
+   */
+  public boolean setCluster(Cluster clusterP) {
+    this.cluster = clusterP;
+    return cluster != null;
   }
 }
