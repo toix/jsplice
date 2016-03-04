@@ -337,6 +337,9 @@ public class Cluster implements Comparable<Cluster> {
   //  }
 
   public double getQuantityBenRelative() {
+    if (getPatternCore().getQuantityBen() == 0) {
+      return 0;
+    }
     ArrayList<Integer> len = new ArrayList<>();
     for (int p = 0; p < pattern.size(); p++) {
       len.add(pattern.get(p).length() * pattern.get(p).getQuantityBen());

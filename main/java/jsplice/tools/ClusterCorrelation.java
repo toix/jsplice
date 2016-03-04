@@ -88,9 +88,6 @@ public class ClusterCorrelation {
       for (int c2 = 0; c2 < correlation[c1].length; c2++) {
         Cluster cl1 = cluster.get(c1);
         Cluster cl2 = cluster.get(c2);
-        if (cl1.contains("ACTTTTTTGATG") || cl2.contains("ACTTTTTTGATG")) {
-          cl1.size();
-        }
         correlation[c1][c2] = getCorrelation(c1, c2);
         
 //        Cluster cl1 = cluster.get(c1);

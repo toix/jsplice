@@ -9,7 +9,6 @@ import jsplice.exception.Log;
 import jsplice.io.Variants;
 
 /**
- * TODO print all variants to analyze them statistically (position, donor vs acceptor)
  * In AlgorithmAdministrator the different algorithms are applied on the data
 */
 public class AlgorithmAdministrator {

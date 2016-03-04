@@ -414,9 +414,9 @@ public class Model implements Runnable {
             + getInformation(sequence, junction, reference, true).getTotalInformation()
             + sequence.getMaxPatternQty(clusterHash, reference)
             - sequence.getMaxPatternQty(clusterHashPatho, reference);
-//        Log.add("info: " + getInformation(sequence, junction, reference, true).getTotalInformation());
-//        Log.add("+ " + sequence.getMaxPatternQty(clusterHash, reference));
-//        Log.add("- " + sequence.getMaxPatternQty(clusterHashPatho, reference));
+        //        Log.add("info: " + getInformation(sequence, junction, reference, true).getTotalInformation());
+        //        Log.add("+ " + sequence.getMaxPatternQty(clusterHash, reference));
+        //        Log.add("- " + sequence.getMaxPatternQty(clusterHashPatho, reference));
       } else {
         indInfo[s] = getInformation(sequence, junction, reference, false).getTotalInformation();
       }
@@ -511,7 +511,7 @@ public class Model implements Runnable {
       Sequence sequence = variantsP.get(i).getSequence();
       int posChangeAbs = sequence.getPositionChange();
       // count pattern on the variant position and in other sequences at the same position
-      for (int length = 1; length <= lengthIntronMax; length++) {
+      for (int length = 3; length <= lengthIntronMax; length++) {
         for (int shift = 0; shift < length; shift++) {
           int from = posChangeAbs + shift - length + 1;
           int to = posChangeAbs + shift;
@@ -536,23 +536,23 @@ public class Model implements Runnable {
       }
     }
 
-//    Log.add("Ref: " + quantityRef, 2);
-//    Log.add("Alt: " + quantityAlt, 2);
+    //    Log.add("Ref: " + quantityRef, 2);
+    //    Log.add("Alt: " + quantityAlt, 2);
     ArrayList<PatternMotif> pattern = Model.createPattern(quantityRef, quantityAlt);
     //		Log.add("pattern: " + pattern, 2);
     ArrayList<Cluster> cluster = createClusterSub(pattern, variantsP.size());
     //		Log.add("cluster: " + cluster, 2);
     if (Config.clusteringBasic) {
       cluster = createCluster(cluster);
-//       Log.add("core: " + cluster, 2);
+      //       Log.add("core: " + cluster, 2);
     }
-    if (!Config.simpleMerging) {
+    if (Config.complexMerging) {
       cluster = mergeCluster(cluster, variantsP);
-//      Log.add("merged: " + cluster, 2);
+      //      Log.add("merged: " + cluster, 2);
     }
-    cluster = removeZeroCluster(cluster);
     cluster = countClusterInSequences(cluster, variantsP);
-//    Log.add("Ben count: " + cluster, 2);
+    cluster = removeZeroCluster(cluster);
+    //    Log.add("Ben count: " + cluster, 2);
     Collections.sort(cluster, order(desc(AttrCl.QTY_BEN_REL), desc(AttrCl.QTY_BEN)));
     HashMap<String, Cluster> clusterHash = createHash(cluster);
     Log.add("Created " + cluster.size() + " cluster with " + variantsP.size() + " variants for " + (benign? "benign " : "pathogene ") + (acceptorP? "acceptor" : "donor") + " sequences", 3);
@@ -622,11 +622,11 @@ public class Model implements Runnable {
       patternCopy.remove(m);
       if (Config.clusteringSub) {
         // Add all unimportant PatternMotif as Sub-Pattern to the Cluster
-        for (int p = 0; p < patternCopy.size();) {
+        for (int p = m; p < patternCopy.size();) {
           PatternMotif patternCurrent = patternCopy.get(p);
-          int mainAbs = patternMain.quantityRef;
-          int subAbs = patternCurrent.quantityRef;
-          if (patternMain.contains(patternCurrent) && 0.5 * subAbs <= mainAbs) {
+          int qtyRefMain = patternMain.quantityRef;
+          int qtyRef = patternCurrent.quantityRef;
+          if (patternMain.contains(patternCurrent) && 0.5 * qtyRef <= qtyRefMain) {
             // add the unchanged copy of Pattern
             clusterNew.addSub(patternCopyHash.get(patternCurrent));
             patternCopy.remove(patternCurrent);
@@ -640,64 +640,42 @@ public class Model implements Runnable {
     }
     return cluster;
   }
-
-  /**
-   * @param patternP
-   * @return
-   */
-  private static PatternMotif findHighestPattern(ArrayList<PatternMotif> patternP) {
-    double valueMax = -1000000000;
-    PatternMotif patternMax = null;
-    // crate a cluster for relevant pattern and remove short ones
-    for (PatternMotif patternCurrent : patternP) {
-      // Log.add(patternMax + " < " + patternCurrent.getQuantityRelative() + "\t " + (valueMax <
-      // patternCurrent.getQuantityRelative()));
-      if (valueMax < patternCurrent.getQuantityRefRelative()) {
-        valueMax = patternCurrent.getQuantityRefRelative();
-        patternMax = patternCurrent;
-        // Log.add(patternMax);
-      }
-    }
-    return patternMax;
-  }
   
   /**
-   * TODO sort by length?
-   * add all cluster as subset of the more important cluster <br>
-   * if subset cluster contains the substring of the important cluster
+   * add all cluster as subset of the more important cluster if subset cluster contains the
+   * substring of the important cluster
    * 
    * @param clusterCopy
    * @return
    */
   private static ArrayList<Cluster> createCluster(ArrayList<Cluster> clusterP) {
     ArrayList<Cluster> clusterCopy = Cluster.clone(clusterP);
-    Collections.sort(clusterCopy, order(desc(AttrCl.QTY_REF_REL), desc(AttrCl.LENGTH)));
-    for (int len = Config.lengthIntronPatternMax - 1; len > 0; len--) {
+    Collections.sort(clusterCopy, order(desc(AttrCl.LENGTH), desc(AttrCl.QTY_REF_REL)));
+
       for (int m = 0; m < clusterCopy.size(); m++) {
         Cluster clusterMain = clusterCopy.get(m);
-        for (int c = m + 1; c < clusterCopy.size();) {
+        for (int c = 0; c < clusterCopy.size();) {
           Cluster clusterCurrent = clusterCopy.get(c);
           boolean contains = clusterCurrent.getPatternCore().contains(clusterMain.getPatternCore());
           int lenMain = clusterMain.getPatternCore().pattern.length();
           int lenSub = clusterCurrent.getPatternCore().pattern.length();
           //          boolean lengthOk = lenMain == len && (lenSub == len + 1 || lenSub == len + 2);
-          boolean lengthOk = lenMain == len && lenSub > len;
+          boolean lengthOk = lenMain < lenSub;
+          int qtyRefMain = clusterMain.getPatternCore().quantityRef;
+          int qtyRefCl = clusterCurrent.getPatternCore().quantityRef;
           int lenDif = lenSub - lenMain;
-          int absClMain = clusterMain.getPatternCore().quantityRef;
-          int absCl = clusterCurrent.getPatternCore().quantityRef;
-          boolean quantityOk = (Math.pow(4, lenDif) - 2) * absCl < absClMain;
-//          boolean quantityOk = lenDif * absSub < absMain;
+          boolean quantityOk = (Math.pow(3, lenDif) - 1) * qtyRefCl < qtyRefMain;
+//          boolean quantityOk = lenDif * qtyRefCl < qtyRefMain;
 //          double subRel = clusterCopy.get(m).getPatternCore().getQuantityRefRelative();
 //          double limit = Config.quantityRelLimit;
           if (contains && lengthOk && quantityOk) {
             clusterMain.add(clusterCurrent);
-            clusterCopy.remove(clusterCurrent);
+            clusterCopy.remove(c);
           } else {
             c++;
           }
         }
       }
-    }
     return clusterCopy;
   }
 
@@ -788,9 +766,9 @@ public class Model implements Runnable {
         }
         String sequenceAlt = variants.get(v).getSequence().substring(min, max, false);
         if (sequenceAlt.contains(patternCluster.pattern)) {
-//          if (!cluster.get(c).addQuantityPat(sequenceAlt)) {
-//            throw new IllegalArgumentException();
-//          }
+          //          if (!cluster.get(c).addQuantityPat(sequenceAlt)) {
+          //            throw new IllegalArgumentException();
+          //          }
         }
       }
     }

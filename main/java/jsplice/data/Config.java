@@ -48,16 +48,16 @@ public class Config {
   public static final int distanceClusterMinAcceptor = 4;
   public static final int distanceClusterMinDonor = 6;
   public static final int distanceClusterMax = getLengthTrainingIntron() - lengthIntronPatternMax;
-  public static final boolean multiClusterRel = true;
-  public static final boolean simpleMerging = false;
+  public static final boolean multiClusterRel = false;
+  public static final boolean complexMerging = false;
   public static final double mergingCorrelationMin = 2.0;
   public static final boolean clusteringSub = true;
-  public static final boolean clusteringBasic = false;
+  public static final boolean clusteringBasic = true;
   public static final String folder = "results/cluster"
       + (multiClusterRel ? "Rel" : "Std")
       + (clusteringSub ? "Csub" : "")
       + (clusteringBasic ? "Cbasic" : "")
-      + (simpleMerging ? "Spl" : ("Cpx" + mergingCorrelationMin))
+      + (complexMerging ? ("Cpx" + mergingCorrelationMin) : "Spl")
       + "/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
   private static String logFile = folder + "jsplice.log";
   public static final int crossValidationSteps = 1000;
