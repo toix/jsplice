@@ -17,7 +17,7 @@ public class AlgorithmAdministrator {
 		
 		Log.add("#benign Variants: " + variantsBenign.size());
 		Log.add("#pathogene Variants: " + variantsPathogene.size());
-		boolean acceptor = true;
+		boolean acceptor = Config.acceptor;
 		
 		String folder = "results/";
 		printAllVariants(variantsPathogene, folder);
@@ -238,7 +238,8 @@ public class AlgorithmAdministrator {
 	private static void crossValidate(Variants variantsPathogene, Variants variantsBenign, boolean acceptorP, String folder) {
 	  variantsPathogene.shuffle();
 	  variantsBenign.shuffle();
-	  int steps = Config.crossValidationSteps + 1;
+	  variantsPathogene = Filter.filterVariantType(variantsPathogene, acceptorP);
+	  int steps = variantsPathogene.size();
 	  for (int i = 1; i < steps; i++) {
 	    CrossValidation crossVal = new CrossValidation(variantsPathogene, variantsBenign, acceptorP, folder, i);
 	    Thread thr = new Thread(crossVal);
@@ -250,7 +251,7 @@ public class AlgorithmAdministrator {
 	      } catch (InterruptedException e) {
 	        e.printStackTrace();
 	      }
-	    } while(Thread.activeCount() > Runtime.getRuntime().availableProcessors() - 1);
+	    } while(Thread.activeCount() > 4);//Runtime.getRuntime().availableProcessors() - 1);
 	  }
 	  do {
         try {

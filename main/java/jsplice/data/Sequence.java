@@ -3,7 +3,12 @@
  */
 package jsplice.data;
 
+import java.util.Arrays;
 import java.util.HashMap;
+
+import org.apache.commons.math3.stat.descriptive.summary.Sum;
+
+import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
 
 import jsplice.tools.Cluster;
 import jsplice.tools.Functions;
@@ -162,6 +167,7 @@ public class Sequence {
    */
   public double getMaxPatternQty(HashMap<String,Cluster> cluster, boolean reference) {
     double deltaPattern = 0;//11.5;
+    int lengthPatternMin = Config.lengthIntronPatternMin;
     int lengthPatternMax = Config.lengthIntronPatternMax;
     int distanceJunctionMin = Config.getDistanceClusterMin(isAcceptor());
     int distanceJunctionMax = Config.getDistanceClusterMax();
@@ -170,23 +176,20 @@ public class Sequence {
     double quantityMax = - 1;
     // find max pattern for ref and alt
     if (posChangeRel >= distanceJunctionMin && posChangeRel <= distanceJunctionMax) {
-      for (int length = 1; length <= lengthPatternMax; length++) {
+      for (int length = lengthPatternMin; length <= lengthPatternMax; length++) {
         for (int shift = 0; shift < length; shift++) {
           int from = posChangeAbs + shift - length + 1;
           int to = posChangeAbs + shift;
           int junction = getPositionJunction();
-          //				System.out.println("Math.abs(" + from + " - " + junction + ") > 3	&& Math.abs(" + to + " - " + junction + ") > 3)");
           if (Math.abs(from - junction) > distanceJunctionMin	&& Math.abs(to - junction) > distanceJunctionMin) {
             String pattern = substring(from, to + 1, reference);
             double quantity = 0;
             if (cluster.containsKey(pattern)) {
-              //						System.out.println("new max: " + pattern);
+              Cluster cl = cluster.get(pattern);
               quantity = cluster.get(pattern).getInformation(pattern);
-            } else {
-              //						 System.out.println("No quantity found for pattern " + pattern);
-            }
-            if (quantityMax < quantity) {
-              quantityMax = quantity;
+              if (quantityMax < quantity) {
+                quantityMax = quantity;
+              }
             }
           }
         }
@@ -199,48 +202,52 @@ public class Sequence {
   }
 
   /**
-   * Rate the sequence without knowledge about the variant
-   * TODO write function
-   * @param quantityRelative
+   * @param cluster
    * @param reference
    * @return
    */
-  public double getMaxPatternQtyNoVariant(HashMap<String,Cluster> cluster, boolean reference) {
+  public static double getMaxPatternQty(String sequence, int junction, boolean acceptor, HashMap<String,Cluster> cluster) {
     double deltaPattern = 0;//11.5;
+    int numOfPattern = Config.numberOfRatedPattern;
+    // TODO sort cluster desc(score), desc(len)
+    int lengthPatternMin = Config.lengthIntronPatternMin;
     int lengthPatternMax = Config.lengthIntronPatternMax;
-    int distanceJunctionMin = Config.getDistanceClusterMin(isAcceptor());
+    int distanceJunctionMin = Config.getDistanceClusterMin(acceptor);
     int distanceJunctionMax = Config.getDistanceClusterMax();
-    int posChangeRel = Math.abs(getPositionChangeRelative());
-    int posChangeAbs = getPositionChange();
-    double quantityMax = - 1;
+    int posIntronMin;
+    int posIntronMax;
+    if (acceptor) {
+      posIntronMin = junction > distanceJunctionMax ? junction - distanceJunctionMax : 0;
+      posIntronMax = junction-distanceJunctionMin;
+    } else {
+      posIntronMin = junction + distanceJunctionMin;
+      posIntronMax = junction + distanceJunctionMax < sequence.length() ? junction + distanceJunctionMax : sequence.length() - 1;
+    }
+    double[] scorePattern = new double[numOfPattern+1];
+    Arrays.fill(scorePattern, -100);
+    HashMap<Double, String> patternString = new HashMap<Double, String>();
     // find max pattern for ref and alt
-    if (posChangeRel >= distanceJunctionMin && posChangeRel <= distanceJunctionMax) {
-      for (int length = 1; length <= lengthPatternMax; length++) {
-        for (int shift = 0; shift < length; shift++) {
-          int from = posChangeAbs + shift - length + 1;
-          int to = posChangeAbs + shift;
-          int junction = getPositionJunction();
-          //              System.out.println("Math.abs(" + from + " - " + junction + ") > 3   && Math.abs(" + to + " - " + junction + ") > 3)");
-          if (Math.abs(from - junction) > distanceJunctionMin && Math.abs(to - junction) > distanceJunctionMin) {
-            String pattern = substring(from, to + 1, reference);
-            double quantity = 0;
-            if (cluster.containsKey(pattern)) {
-              //                      System.out.println("new max: " + pattern);
-              quantity = cluster.get(pattern).getInformation(pattern);
-            } else {
-              //                       System.out.println("No quantity found for pattern " + pattern);
-            }
-            if (quantityMax < quantity) {
-              quantityMax = quantity;
-            }
-          }
+    for (int shift = posIntronMin; shift < posIntronMax + 1 - lengthPatternMax; shift++) {
+      for (int length = lengthPatternMax; length >= lengthPatternMin; length--) {
+        int from = shift;
+        int to = shift + length - 1;
+        String pattern = sequence.substring(from, to + 1);
+        boolean contains = false;
+        for (Double key : patternString.keySet()) {
+          contains = contains || patternString.get(key).contains(pattern);
+        }
+        if (cluster.containsKey(pattern) && !contains) {
+          Cluster cl = cluster.get(pattern);
+          double rating = cluster.get(pattern).getInformation(pattern);
+          patternString.remove(scorePattern[0]);
+          scorePattern[0] = rating;
+          patternString.put(scorePattern[0], pattern);
+          Arrays.sort(scorePattern);
         }
       }
-      quantityMax -= deltaPattern;
-    } else {
-      quantityMax = 0;
     }
-    return quantityMax;
+    double result = Functions.sum(scorePattern) - scorePattern[0];
+    return result;
   }
 
   /**
@@ -331,6 +338,15 @@ public class Sequence {
     }else {
       return exonicExtensionSequence + sequenceString + intronicExtensionSequence;
     }
+  }
+
+  /**
+   * @return
+   */
+  public String getStringExtendedAlt() {
+    String extended = getStringExtended();
+    String result = extended.substring(0, getPositionChangeExtended())+ getAlt() + extended.substring(getPositionChangeExtended()+1);
+    return result;
   }
 
   public String getStringAlternate(){

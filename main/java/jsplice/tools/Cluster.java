@@ -131,36 +131,45 @@ public class Cluster implements Comparable<Cluster> {
    * @return
    */
   public double getInformation(String patternP) {
-    boolean multiRel = Config.multiClusterRel;
-    if (weightMatrix == null) {
-      calculateInformationMatrix();
-    }
-    if (patternP.length() > lengthCluster) {
-      throw new IllegalArgumentException("The length of the pattern Sequence (" + patternP.length()
-          + ") has to be equal or bigger than the length of this instance (" + lengthCluster + ").");
-    }
-    int lengthOverlapMax = Config.lengthIntronPatternMax;
-    // align pattern
-    int idx = pattern.indexOf(new PatternMotif(patternP, 1, 0, 0, null));
-    int align;
-    if (idx > -1) {
-      align = getPattern(idx).shift;
-    } else {
-      //        throw new IllegalArgumentException(this.getPatternCore() + "\n does not coontain " + patternP);
-      align = align(this, new PatternMotif(patternP, 1, 0, 0, null));
-    }
-    int matrixStart = lengthOverlapMax + align;
-    double[] individualInformation = Functions.getInitializedDoubleArray(patternP.length());
-    for (int lp = 0, lm = matrixStart; lp < patternP.length(); lp++, lm++) {
-      int baseNumber = Functions.mapNumber.get(patternP.charAt(lp));
-      individualInformation[lp] = weightMatrix[lm][baseNumber];
-    }
-    //    return Functions.sum(individualInformation) * Math.log(getPatternCore().quantityBen + 1) / Math.log(2);
-    if (multiRel) {
-      return Functions.sum(individualInformation) * Math.log10(getPatternCore().getQuantityBenRelative() + 1);
-    } else {
-      return Functions.sum(individualInformation);
-    }
+//    boolean multiRel = Config.multiClusterRel;
+//    if (weightMatrix == null) {
+//      calculateInformationMatrix();
+//    }
+//    if (patternP.length() > lengthCluster) {
+//      throw new IllegalArgumentException("The length of the pattern Sequence (" + patternP.length()
+//          + ") has to be equal or bigger than the length of this instance (" + lengthCluster + ").");
+//    }
+//    int lengthOverlapMax = Config.lengthIntronPatternMax;
+//    // align pattern
+//    int idx = pattern.indexOf(new PatternMotif(patternP, 1, 0, 0, null));
+//    int align;
+//    if (idx > -1) {
+//      align = getPattern(idx).shift;
+//    } else {
+//      //        throw new IllegalArgumentException(this.getPatternCore() + "\n does not coontain " + patternP);
+//      align = align(this, new PatternMotif(patternP, 1, 0, 0, null));
+//    }
+//    int matrixStart = lengthOverlapMax + align;
+//    double[] individualInformation = Functions.getInitializedDoubleArray(patternP.length());
+//    for (int lp = 0, lm = matrixStart; lp < patternP.length(); lp++, lm++) {
+//      int baseNumber = Functions.mapNumber.get(patternP.charAt(lp));
+//      individualInformation[lp] = weightMatrix[lm][baseNumber];
+//    }
+//    //    return Functions.sum(individualInformation) * Math.log(getPatternCore().quantityBen + 1) / Math.log(2);
+//    if (multiRel) {
+//      return Functions.sum(individualInformation) * Math.log10(getPatternCore().getQuantityBenRelative() + 1);
+//    } else {
+//      return Functions.sum(individualInformation);
+//    }
+    int len = getPatternCore().length();
+    double rel = getPatternCore().getQuantityRefRelative();
+    // error
+//    double result = getPatternCore().length() * (2.0 - (4.0 - 1) / (2 * Math.log(2) * (rel - 1)));
+    // similar log
+//    double result = getPatternCore().length() * (-1+(Math.log(getPatternCore().getQuantityRefRelative()))/(Math.log(2)));
+    // log at 1
+    double result = len * ((Math.log(rel))/(Math.log(2)));
+    return result;
   }
 
   /*

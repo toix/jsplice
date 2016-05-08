@@ -3,14 +3,12 @@
  */
 package jsplice.tools;
 
-import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.Timer;
 
 import jsplice.data.Config;
 import jsplice.data.PatternMotif;
@@ -72,7 +70,11 @@ public class Model implements Runnable {
       throw new IllegalArgumentException("The parameter contains no variants.");
     }
     this.sequences = new Sequences(variantsP, acceptorP);
-    Log.add("Number of pathogene training sequences for " + (acceptorP? "acceptor" : "donor") + " site: " + sequences.getSequences().size(), 3);
+    if (sequences.size() < 2) {
+      throw new IllegalArgumentException("The number of sequences is to small.");
+    }
+    Log.add("Number of pathogene training sequences for " + (acceptorP ? "acceptor" : "donor")
+        + " site: " + sequences.getSequences().size(), 3);
   }
 
   /**
@@ -355,7 +357,7 @@ public class Model implements Runnable {
     if (junction < min || junction > max) {
       throw new IllegalArgumentException("The position (=" + junction + ") has to be a number between " + min + " and " + max);
     }
-    int intronLengthMax = Config.getLengthIntronCryptic(isAcceptor());
+    int intronLengthMax = Config.getLengthIntronStaticModel(isAcceptor());
     int patternStart = junction - sequences.getJunctionPosition();
     int matrixStart = 0;
     int matrixEnd = sequences.length();
@@ -410,13 +412,16 @@ public class Model implements Runnable {
       int junction = sequence.getPositionJunction();
       if (cluster) {
         int changeRel = sequence.getPositionChangeRelative();
-        indInfo[s] = 0
-            + getInformation(sequence, junction, reference, true).getTotalInformation()
-            + sequence.getMaxPatternQty(clusterHash, reference)
-            - sequence.getMaxPatternQty(clusterHashPatho, reference);
-        //        Log.add("info: " + getInformation(sequence, junction, reference, true).getTotalInformation());
-        //        Log.add("+ " + sequence.getMaxPatternQty(clusterHash, reference));
-        //        Log.add("- " + sequence.getMaxPatternQty(clusterHashPatho, reference));
+        indInfo[s] = 0;
+        if (Config.rateString) {
+          indInfo[s] = getInformation(sequence, junction, reference, true).getTotalInformation()
+              + Sequence.getMaxPatternQty(sequence.getStringExtended(), sequence.getPositionJunctionExtended(), sequence.isAcceptor(), clusterHash)
+              - Sequence.getMaxPatternQty(sequence.getStringExtendedAlt(), sequence.getPositionJunctionExtended(), sequence.isAcceptor(), clusterHashPatho);
+        } else {
+          indInfo[s] = getInformation(sequence, junction, reference, true).getTotalInformation()
+              + sequence.getMaxPatternQty(clusterHash, reference)
+              - sequence.getMaxPatternQty(clusterHashPatho, reference);
+        }
       } else {
         indInfo[s] = getInformation(sequence, junction, reference, false).getTotalInformation();
       }
@@ -498,6 +503,7 @@ public class Model implements Runnable {
    * @param acceptorP
    */
   static HashMap<String, Cluster> findPattern(Variants variantsP, boolean acceptorP, boolean benign) {
+    int lengthIntronMin = Config.lengthIntronPatternMin;
     int lengthIntronMax = Config.lengthIntronPatternMax;
     int distanceJunctionMin = Config.getDistanceClusterMin(acceptorP);
     int distanceJunctionMax = Config.getDistanceClusterMax();
@@ -511,12 +517,12 @@ public class Model implements Runnable {
       Sequence sequence = variantsP.get(i).getSequence();
       int posChangeAbs = sequence.getPositionChange();
       // count pattern on the variant position and in other sequences at the same position
-      for (int length = 3; length <= lengthIntronMax; length++) {
+      for (int length = lengthIntronMin; length <= lengthIntronMax; length++) {
         for (int shift = 0; shift < length; shift++) {
           int from = posChangeAbs + shift - length + 1;
           int to = posChangeAbs + shift;
           int junction = sequence.getPositionJunction();
-          if (Math.abs(from - junction) > distanceJunctionMin-1 && Math.abs(to - junction) > distanceJunctionMin-1) {
+          if (Math.abs(from - junction) >= distanceJunctionMin && Math.abs(to - junction) >= distanceJunctionMin) {
             String patternRef = sequence.substring(from, to + 1, benign);
             if (!quantityRef.containsKey(patternRef)) {
               quantityRef.put(patternRef, 1);
@@ -550,29 +556,14 @@ public class Model implements Runnable {
       cluster = mergeCluster(cluster, variantsP);
       //      Log.add("merged: " + cluster, 2);
     }
-    cluster = countClusterInSequences(cluster, variantsP);
-    cluster = removeZeroCluster(cluster);
+//    cluster = countClusterInSequences(cluster, variantsP);
+//    cluster = removeZeroCluster(cluster);
     //    Log.add("Ben count: " + cluster, 2);
-    Collections.sort(cluster, order(desc(AttrCl.QTY_BEN_REL), desc(AttrCl.QTY_BEN)));
+    Collections.sort(cluster, order(desc(AttrCl.QTY_REF_REL), desc(AttrCl.LENGTH)));
     HashMap<String, Cluster> clusterHash = createHash(cluster);
     Log.add("Created " + cluster.size() + " cluster with " + variantsP.size() + " variants for " + (benign? "benign " : "pathogene ") + (acceptorP? "acceptor" : "donor") + " sequences", 3);
     Log.add(cluster, 2);
     return clusterHash;
-  }
-
-  /**
-   * @param List of Cluster that where present in clustering process
-   * @return
-   */
-  private static ArrayList<Cluster> removeZeroCluster(ArrayList<Cluster> clusterP) {
-    ArrayList<Cluster> clusterNew = new ArrayList<Cluster>();
-    for (int c = 0; c < clusterP.size(); c++) {
-      Cluster cl = clusterP.get(c);
-      if (cl.getPatternCore().getQuantityBen() > 0) {
-        clusterNew.add(cl);
-      }
-    }
-    return clusterNew;
   }
 
   /**
@@ -615,7 +606,7 @@ public class Model implements Runnable {
     PatternMotif patternHigh = patternCopy.get(0);
     double refRelPattern = patternHigh.getQuantityRefRelative();
     // Create a cluster for every PatternMotif
-    for (int m = 0; m < patternCopy.size() && refRelPattern > limit;) {
+    for (int m = 0; m < patternCopy.size()-2 && refRelPattern >= limit;) {
       PatternMotif patternMain = patternCopyHash.get(patternHigh);
       Cluster clusterNew = new Cluster(patternMain, variantsSize);
       cluster.add(clusterNew);
@@ -628,7 +619,7 @@ public class Model implements Runnable {
           int qtyRef = patternCurrent.quantityRef;
           if (patternMain.contains(patternCurrent) && 0.5 * qtyRef <= qtyRefMain) {
             // add the unchanged copy of Pattern
-            clusterNew.addSub(patternCopyHash.get(patternCurrent));
+//            clusterNew.addSub(patternCopyHash.get(patternCurrent));
             patternCopy.remove(patternCurrent);
           } else {
             p++;
@@ -773,6 +764,21 @@ public class Model implements Runnable {
       }
     }
     return cluster;
+  }
+
+  /**
+   * @param List of Cluster that where present in clustering process
+   * @return
+   */
+  private static ArrayList<Cluster> removeZeroCluster(ArrayList<Cluster> clusterP) {
+    ArrayList<Cluster> clusterNew = new ArrayList<Cluster>();
+    for (int c = 0; c < clusterP.size(); c++) {
+      Cluster cl = clusterP.get(c);
+      if (cl.getPatternCore().getQuantityBen() > 0) {
+        clusterNew.add(cl);
+      }
+    }
+    return clusterNew;
   }
 
   /**

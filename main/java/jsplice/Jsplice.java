@@ -35,28 +35,26 @@ public class Jsplice {
 		FastaReferenceFiles faRefFile = new FastaReferenceFiles(Config.getChrFileNames());
 		RefSeqGeneFile refGeneFile = new RefSeqGeneFile(Config.getRefGeneFileName());
 		
-		int lenMax = Config.getLengthModelIntron();
-		for (int lenIntron = lenMax; lenIntron < lenMax+1; lenIntron++) {
-			System.gc();
-			Config.setLengthModelIntron(lenIntron);
-			Log.add("len intron: " + Config.getLengthModelIntron());
-			// ClinVar pathogene
-			Log.add("\n - - - ClinVar pathogene - - - ", 3);
-			ClinVarFile clinVarFile = new ClinVarFile(Config.getClinVarFileName(), false);
-			clinVarFile.addRefSeqData(refGeneFile, faRefFile);
-			// HGMD (pathogene)
-			Log.add("\n - - - HGMD pathogene - - - ", 3);
-			HgmdFile hgmdFile = new HgmdFile(Config.getHgmdFileName());
-			hgmdFile.addRefSeqData(refGeneFile, faRefFile);
-			// malign
-			Variants varFile = Variants.concat(clinVarFile, hgmdFile);
-			// Benign
-			Log.add("\n - - - ClinVar benign - - - ", 3);
-			ClinVarFile clinVarFileBenign = new ClinVarFile(Config.getClinVarFileName(), true);
-			clinVarFileBenign.addRefSeqData(refGeneFile, faRefFile);
-			
-			AlgorithmAdministrator algoAdmin = new AlgorithmAdministrator(varFile, clinVarFileBenign);
-		}
+		int lenIntron = Config.getLengthModelIntron();
+		System.gc();
+		Config.setLengthModelIntron(lenIntron);
+		Log.add("len intron: " + Config.getLengthModelIntron());
+		// ClinVar pathogenic
+		Log.add("\n - - - ClinVar pathogene - - - ", 3);
+		ClinVarFile clinVarFile = new ClinVarFile(Config.getClinVarFileName(), false);
+		clinVarFile.addRefSeqData(refGeneFile, faRefFile);
+		// HGMD (pathogene)
+		Log.add("\n - - - HGMD pathogene - - - ", 3);
+		HgmdFile hgmdFile = new HgmdFile(Config.getHgmdFileName());
+		hgmdFile.addRefSeqData(refGeneFile, faRefFile);
+		// pathogenic
+		Variants varFile = Variants.concat(clinVarFile, hgmdFile);
+  		// Benign
+		Log.add("\n - - - ClinVar benign - - - ", 3);
+		ClinVarFile clinVarFileBenign = new ClinVarFile(Config.getClinVarFileName(), true);
+		clinVarFileBenign.addRefSeqData(refGeneFile, faRefFile);
+		// prediction
+		AlgorithmAdministrator algoAdmin = new AlgorithmAdministrator(varFile, clinVarFileBenign);
 		
 		
 		//vcf

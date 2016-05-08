@@ -69,7 +69,14 @@ public class Log {
     getLog().writeToFile();
     logThread.remove(getLog());
   }
-
+  
+  /**
+   * reset log for thread
+   */
+  public static void remove() {
+    logThread.remove(getLog());
+  }
+  
   /**
    * reset the static object for test cases
    */

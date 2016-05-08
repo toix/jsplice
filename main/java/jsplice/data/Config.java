@@ -21,10 +21,10 @@ public class Config {
    * 2 * sequenceLength defines the length of the training data <br/>
    * Has to be even. Is the sum of modelIntronLength and modelExonLength
    */
-  private static int lengthModel = 20;
+  private static int lengthModel = 30;
   /**
    * Length of the exonic part of the sequence. <br/>
-   * sequenceLength - exonLength defines the intron length
+   * sequenceLength - lengthModel and lengthModelExon define the intron length
    */
   private static int lengthModelExon = 2;
   /**
@@ -39,28 +39,32 @@ public class Config {
   private static boolean useGrch38 = false;
   public static final String[] chromosomeNames = {"1", "2", "3", "4", "5", "6", "7", "8", "9",
       "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "X", "Y"};
-  public static final double quantityRelLimit = 1;
-  public static final double ClusterCorrelationLimit = 0.5;
+  public static final double quantityRelLimit = 3;
   /**
    * The maximum length of the pattern for clustering
    */
   public static final int lengthIntronPatternMax = 12;
+  public static final int lengthIntronPatternMin = 1;
   public static final int distanceClusterMinAcceptor = 4;
-  public static final int distanceClusterMinDonor = 6;
+  public static final int distanceClusterMinDonor = 7;
   public static final int distanceClusterMax = getLengthTrainingIntron() - lengthIntronPatternMax;
-  public static final boolean multiClusterRel = false;
+  public static boolean acceptor = true;
+  public static final boolean clusteringSub = false;
+  public static final boolean clusteringBasic = false;
   public static final boolean complexMerging = false;
-  public static final double mergingCorrelationMin = 2.0;
-  public static final boolean clusteringSub = true;
-  public static final boolean clusteringBasic = true;
-  public static final String folder = "results/cluster"
+  public static final double mergingCorrelationMin = 1.0;
+  public static final boolean multiClusterRel = false;
+  public static final boolean rateString = false;
+  public static final int numberOfRatedPattern = 1;
+  
+  public static final String folder = "results/patternLog30"
       + (multiClusterRel ? "Rel" : "Std")
-      + (clusteringSub ? "Csub" : "")
+      + (clusteringSub ? "Sub" : "")
       + (clusteringBasic ? "Cbasic" : "")
       + (complexMerging ? ("Cpx" + mergingCorrelationMin) : "Spl")
+      + (rateString ? ("Str" + numberOfRatedPattern) : "")
       + "/" + Config.getLengthModelIntron() + "+" + Config.getLengthModelExon() + "/";
-  private static String logFile = folder + "jsplice.log";
-  public static final int crossValidationSteps = 1000;
+  private static String logFile = folder + "jsplice" + (acceptor? "Acc" : "Don") + ".log";
 	
 	/**
 	 * 
@@ -239,7 +243,7 @@ public class Config {
 	 * @param acceptorP
 	 * @return The length of the Intron for the cryptic site prediction
 	 */
-	public static int getLengthIntronCryptic(boolean acceptorP) {
+	public static int getLengthIntronStaticModel(boolean acceptorP) {
 		return (int) Functions.round((getDistanceClusterMin(acceptorP) + 0), 0);
 	}
 	/**

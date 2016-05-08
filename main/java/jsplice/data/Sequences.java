@@ -91,9 +91,6 @@ public class Sequences {
 		boolean intronExonJunction = firstSequence.isAcceptor();
 		int sequenceLength = firstSequence.length();
 		int junctionPosition = firstSequence.getPositionJunction();
-		if (sequences.size() < 2) {
-			throw new IllegalArgumentException("The number of sequences is to small.");
-		}
 		for (int i = 1; i < sequences.size(); i++) {
 			Sequence sequence = sequences.get(i);
 			if (intronExonJunction != sequence.isAcceptor()) {

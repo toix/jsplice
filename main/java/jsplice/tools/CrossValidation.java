@@ -3,6 +3,7 @@
  */
 package jsplice.tools;
 
+import jsplice.data.Config;
 import jsplice.data.Sequence;
 import jsplice.data.Sequences;
 import jsplice.data.Variant;
@@ -40,33 +41,38 @@ public class CrossValidation implements Runnable{
   public void run() {
     Log.add("\n - - - - - - - - - - - - - - - - - - - - - ", 3);
     Log.add("cross validation run nr. " + i, 3);
-    VariantsTupel varBenig = VariantsTupel.createTestPool(variantsBenign);
-    VariantsTupel varPatho = VariantsTupel.createTestPool(variantsPathogene);
+    Log.writeToFile();
+    VariantsTupel variantsPathoTupel = VariantsTupel.createTestPool(this.variantsPathogene, i);
     
     Log.add(" - - - pathogene standard model - - - ", 3);
-    Model modelStd = new Model(varPatho.train, acceptor);
+    Model modelStd = new Model(variantsPathoTupel.train, acceptor);
     modelStd.run();
-    Functions.writeToFile(modelStd.matrixToString("A\tC\tG\tT", modelStd.getJunctionPosition()), folder + "accMatrix.tsv");
+    Functions.writeToFile(modelStd.matrixToString("A\tC\tG\tT", modelStd.getJunctionPosition()), folder + (acceptor ? "acc" : "don") + "Matrix.tsv");
 //  Model modelStdOther = new Model(varPatho.train, !acceptorP);
 //  Functions.writeToFile(modelStd.matrixToString("A\tC\tG\tT", modelStdOther.getJunctionPosition()), folder + "donMatrix.tsv");
     Log.add(" - - - pathogene test variants - - - ", 3);
-    Sequences sequencesPathoTest = new Sequences(varPatho.test, acceptor);
+    Sequences sequencesPathoTest = new Sequences(variantsPathoTupel.test, acceptor);
     Log.add("Number of pathogene test sequences for " + (acceptor? "acceptor" : "donor") + " site: " + sequencesPathoTest.size(), 3);
     Log.add(" - - - benign test variants - - - ", 3);
-    Sequences sequencesBenTest = new Sequences(varBenig.test, acceptor);
+    Sequences sequencesBenTest = new Sequences(variantsBenign, acceptor);
     Log.add("Number of benign test sequences for " + (acceptor? "acceptor" : "donor") + " site: " + sequencesBenTest.size(), 3);
     
     // write benign results to file
     String standardResultsBenign = getResultsTable(sequencesBenTest, modelStd, false);
-    Functions.writeToFile(standardResultsBenign, folder + "benAccStd" + i + ".tsv");
+    Functions.writeToFile(standardResultsBenign, folder + "ben" + (acceptor ? "Acc" : "Don") + "Std" + i + ".tsv");
     String changeResultsBeingn = getResultsTable(sequencesBenTest, modelStd, true);
-    Functions.writeToFile(changeResultsBeingn, folder + "benAccChg" + i + ".tsv");
+    Functions.writeToFile(changeResultsBeingn, folder + "ben" + (acceptor ? "Acc" : "Don") + "Chg" + i + ".tsv");
     // write pathogene results to file
     String standardResultsPathogene = getResultsTable(sequencesPathoTest, modelStd, false);
-    Functions.writeToFile(standardResultsPathogene, folder + "pathoAccStd" + i + ".tsv");
+    Functions.writeToFile(standardResultsPathogene, folder + "patho" + (acceptor ? "Acc" : "Don") + "Std" + i + ".tsv");
     String changeResultsPathogene = getResultsTable(sequencesPathoTest, modelStd, true);
-    Functions.writeToFile(changeResultsPathogene, folder + "pathoAccChg" + i + ".tsv");
-    Log.writeToFile();
+    Functions.writeToFile(changeResultsPathogene, folder + "patho" + (acceptor ? "Acc" : "Don") + "Chg" + i + ".tsv");
+    if (i < 10) {
+      Log.writeToFile();
+    }
+    else {
+      Log.remove();
+    }
   }
 
   /**
